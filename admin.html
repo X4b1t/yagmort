@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Яг-Морт Админка</title>
+<link rel="icon" href="img/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#1fbf4a; --brand-d:#14923a;
+  --bg:#f3f4f0; --panel:#fff; --side:#0f2a1c; --text:#14201a; --muted:#6b7a71; --line:#e3e6df; --col:#eceee8;
+  --shadow:0 2px 10px rgba(15,42,28,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0b1410; --panel:#132019; --side:#08110c; --text:#e6eee8; --muted:#8fa196; --line:#213429; --col:#0f1a14; --shadow:none; }
+}
+:root[data-theme="dark"]{ --bg:#0b1410; --panel:#132019; --side:#08110c; --text:#e6eee8; --muted:#8fa196; --line:#213429; --col:#0f1a14; --shadow:none; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,select{font:inherit;color:var(--text)}
+aside{width:232px;flex:0 0 232px;background:var(--side);color:#cfe0d5;padding:20px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;margin:0 6px 22px}
+.brand i{width:38px;height:38px;border-radius:10px;background:#fff url(img/logo.jpg) center/cover}
+.brand b{color:#fff;font-size:15px;display:block}.brand small{font-size:11.5px;opacity:.65}
+aside button{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;font-weight:600;font-size:14px;text-align:left}
+aside button.on{background:var(--brand);color:#fff}
+aside button:not(.on):hover{background:rgba(255,255,255,.06)}
+aside .sp{flex:1}
+aside a{color:#cfe0d5;font-size:13px;text-decoration:none;padding:8px 12px;opacity:.8}
+main{flex:1;min-width:0;padding:24px 28px 40px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+header h1{font-size:24px;font-weight:800}
+header p{color:var(--muted);font-size:13.5px;margin-top:2px}
+.btn{padding:10px 16px;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:13.5px}
+.btn.sec{background:var(--panel);color:var(--text);border:1px solid var(--line)}
+.view{display:none}.view.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.kpi{background:var(--panel);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.kpi small{color:var(--muted);font-size:12.5px;font-weight:600}
+.kpi b{display:block;font-size:26px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--brand-d);font-weight:700}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
+.panel{background:var(--panel);border-radius:16px;padding:18px;box-shadow:var(--shadow);border:1px solid var(--line);min-width:0}
+.panel h2{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;justify-content:space-between}
+.panel h2 small{font-weight:600;color:var(--muted);font-size:12px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:200px;padding-top:10px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;min-width:0}
+.bar i{display:block;width:100%;max-width:34px;background:var(--brand);border-radius:6px 6px 2px 2px;min-height:2px;position:relative}
+.bar i:hover::after{content:attr(data-v);position:absolute;bottom:100%;left:50%;transform:translate(-50%,-4px);background:var(--side);color:#fff;font-size:11px;padding:3px 6px;border-radius:6px;white-space:nowrap;font-style:normal}
+.bar small{font-size:10.5px;color:var(--muted)}
+.funnel{display:flex;flex-direction:column;gap:10px}
+.fn{display:grid;grid-template-columns:100px 1fr 34px;gap:10px;align-items:center;font-size:13px}
+.fn div{height:22px;border-radius:6px;background:var(--col);overflow:hidden}
+.fn div i{display:block;height:100%;border-radius:6px}
+.fn b{text-align:right;font-variant-numeric:tabular-nums}
+.top{display:flex;flex-direction:column;gap:10px}
+.top div{display:flex;justify-content:space-between;font-size:13.5px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+/* kanban */
+.kanban{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--col);border-radius:14px;padding:10px;min-height:300px}
+.col h3{font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px;margin:2px 4px 10px}
+.col h3 i{width:9px;height:9px;border-radius:50%}
+.col h3 span{margin-left:auto;color:var(--muted);font-weight:700}
+.col.drop{outline:2px dashed var(--brand);outline-offset:-2px}
+.kc{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:var(--shadow);border:1px solid var(--line);cursor:grab;font-size:13px}
+.kc:active{cursor:grabbing}
+.kc b{display:block;font-size:13.5px;margin-bottom:3px}
+.kc .m{color:var(--muted);font-size:12px;line-height:1.5}
+.kc .f{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.kc .f strong{font-size:14px}
+.kc select{font-size:11.5px;padding:3px 4px;border-radius:6px;border:1px solid var(--line);background:var(--bg)}
+.flags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.flags em{font-style:normal;font-size:10.5px;font-weight:700;background:var(--col);padding:2px 6px;border-radius:6px}
+/* occupancy */
+.occ{overflow-x:auto}
+.occ table{border-collapse:separate;border-spacing:3px;font-size:12px;min-width:100%}
+.occ th{font-weight:700;color:var(--muted);padding:4px;white-space:nowrap}
+.occ td.n{font-weight:700;white-space:nowrap;padding-right:10px;text-align:left}
+.occ td.c{width:38px;height:32px;border-radius:7px;background:var(--col);text-align:center;cursor:default}
+.occ td.c.b{background:var(--brand);color:#fff;font-weight:700}
+.occ td.c.p{background:#0284c7;color:#fff;font-weight:700}
+.occ .we{color:#dc2626}
+table.list{width:100%;border-collapse:collapse;font-size:13px}
+table.list th{text-align:left;color:var(--muted);font-weight:700;padding:8px;border-bottom:1px solid var(--line)}
+table.list td{padding:10px 8px;border-bottom:1px solid var(--line)}
+.pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+.empty{color:var(--muted);text-align:center;padding:30px}
+@media (max-width:900px){
+  body{flex-direction:column}
+  aside{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;padding:12px 16px;flex:0 0 auto}
+  .brand{margin:0 10px 0 0}.sp,aside a{display:none}
+  main{padding:18px 16px 32px}
+  .kpis{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><i></i><span><b>Яг-Морт</b><small>Панель администратора</small></span></div>
+  <button class="on" data-v="dash">📊 Обзор</button>
+  <button data-v="kanban">🗂️ Заявки</button>
+  <button data-v="occ">📅 Загрузка</button>
+  <button data-v="list">📋 Все брони</button>
+  <button data-v="bonus">🌰 Бонусы</button>
+  <div class="sp"></div>
+  <a href="index.html">← Приложение для гостей</a>
+</aside>
+<main>
+  <header>
+    <div><h1 id="hTitle">Обзор</h1><p id="hSub"></p></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn sec" id="demoBtn">Демо-данные</button>
+      <button class="btn sec" id="clearBtn">Очистить</button>
+    </div>
+  </header>
+
+  <section class="view on" id="v-dash">
+    <div class="kpis" id="kpis"></div>
+    <div class="grid">
+      <div class="panel"><h2>Выручка по дням <small>подтверждённые брони, 14 дней</small></h2><div class="bars" id="bars"></div></div>
+      <div class="panel"><h2>Воронка заявок</h2><div class="funnel" id="funnel"></div></div>
+    </div>
+    <div class="grid">
+      <div class="panel"><h2>Ближайшие заезды</h2><div id="upcoming"></div></div>
+      <div class="panel"><h2>Популярные объекты</h2><div class="top" id="topItems"></div></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-kanban"><div class="kanban" id="kanban"></div></section>
+
+  <section class="view" id="v-occ"><div class="panel occ"><h2>Загрузка объектов <small>зелёный — домики/беседки, синий — активности</small></h2><div id="occ"></div></div></section>
+
+  <section class="view" id="v-bonus">
+    <div class="kpis" id="bKpis"></div>
+    <div class="grid">
+      <div class="panel"><h2>Кто приводит друзей <small>код пригласившего → визиты друзей</small></h2><div id="refTable"></div></div>
+      <div class="panel"><h2>Правила программы</h2><div class="top" id="bRules"></div></div>
+    </div>
+    <div class="panel"><h2>Брони с бонусами</h2><div id="bList" style="overflow-x:auto"></div></div>
+  </section>
+
+  <section class="view" id="v-list"><div class="panel" style="overflow-x:auto"><table class="list" id="list"></table></div></section>
+</main>
+
+<script src="data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const addDays = (n, base = new Date()) => { const d = new Date(base); d.setDate(d.getDate() + n); return d; };
+const dShort = s => new Date(s + 'T12:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+const stOf = id => STATUSES.find(s => s.id === id);
+const PAID = ['confirmed', 'checkedin', 'done'];
+
+const TITLES = { dash: ['Обзор', 'Ключевые показатели парка'], kanban: ['Заявки', 'Перетаскивайте карточки между колонками'], occ: ['Загрузка', 'Занятость объектов на 14 дней вперёд'], list: ['Все брони', 'Полный список заявок'], bonus: ['Бонусы', 'Программа «Шишки Яг-Морта» и «Приведи друга»'] };
+let view = 'dash';
+$$('aside [data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; render(); });
+
+function render() {
+  $$('aside [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+  $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
+  $('#hTitle').textContent = TITLES[view][0];
+  $('#hSub').textContent = TITLES[view][1] + ' · ' + new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+  const all = Store.all();
+  ({ dash: renderDash, kanban: renderKanban, occ: renderOcc, list: renderList, bonus: renderBonus })[view](all);
+}
+
+function renderBonus(all) {
+  const live = all.filter(b => b.status !== 'cancelled');
+  const byRef = live.filter(b => b.refBy);
+  const members = new Set(live.filter(b => b.loyaltyCode).map(b => b.loyaltyCode));
+  const coins = live.reduce((s, b) => s + (b.coinsSpent || 0), 0);
+  const refRev = byRef.filter(b => PAID.includes(b.status)).reduce((s, b) => s + b.total, 0);
+  $('#bKpis').innerHTML = [
+    ['Участники программы', members.size, 'гостей с картой «Шишки»'],
+    ['Пришли по приглашению', byRef.length, `выручка ${rub(refRev) || '0 ₽'}`],
+    ['Оплачено шишками', coins.toLocaleString('ru-RU') + ' 🌰', 'списано в бронях'],
+    ['Подарочные беседки', live.filter(b => b.gift).length, `за каждый ${LOYALTY.stampsForGift}-й визит`],
+  ].map(([l, v, s]) => `<div class="kpi"><small>${l}</small><b>${v}</b><span>${s}</span></div>`).join('');
+
+  const refs = {};
+  byRef.forEach(b => { const r = refs[b.refBy] ||= { n: 0, done: 0 }; r.n++; if (b.status === 'done') r.done++; });
+  const rows = Object.entries(refs).sort((a, b) => b[1].n - a[1].n);
+  $('#refTable').innerHTML = rows.length ? `<table class="list"><tr><th>Код</th><th>Друзей</th><th>Отдохнули</th><th>К начислению</th></tr>${rows.map(([c, r]) => `<tr><td><b>${esc(c)}</b></td><td>${r.n}</td><td>${r.done}</td><td><b>${(r.done * LOYALTY.refReward).toLocaleString('ru-RU')} 🌰</b></td></tr>`).join('')}</table>` : '<div class="empty">Пока никто не пришёл по приглашению</div>';
+  $('#bRules').innerHTML = [
+    ['Вступление', `+${LOYALTY.welcome} 🌰`], ['Кешбэк по уровням', LOYALTY.levels.map(l => `${l.icon} ${Math.round(l.rate * 100)}%`).join(' · ')],
+    ['Будни пн–чт', `×${LOYALTY.weekdayMultiplier}`], ['Скидка другу', rub(LOYALTY.refFriendDiscount)], ['Награда за друга', `+${LOYALTY.refReward} 🌰`],
+    ['Оплата шишками', `до ${LOYALTY.maxSpendShare * 100}%`], ['Подарок', `беседка на 4 · каждый ${LOYALTY.stampsForGift}-й визит`],
+  ].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('');
+  const bl = live.filter(b => b.refBy || b.coinsSpent || b.gift || b.loyaltyCode);
+  $('#bList').innerHTML = bl.length ? `<table class="list"><tr><th>Дата</th><th>Гость</th><th>Объект</th><th>Карта</th><th>Бонусы</th><th>К оплате</th><th>Статус</th></tr>${bl.map(b => `<tr><td>${dShort(b.date)}</td><td>${esc(b.name)}</td><td>${esc(b.itemName)}</td><td>${esc(b.loyaltyCode || '—')}</td><td>${[b.refBy && `👥 друг ${esc(b.refBy)} −${rub(b.refDiscount)}`, b.coinsSpent && `🌰 −${b.coinsSpent}`, b.gift && '🎁 подарок'].filter(Boolean).join('<br>') || '—'}</td><td><b>${rub(b.total) || '0 ₽'}</b></td><td><span class="pill" style="background:${stOf(b.status).color}">${stOf(b.status).label}</span></td></tr>`).join('')}</table>` : '<div class="empty">Нет броней с бонусами</div>';
+}
+
+function renderDash(all) {
+  const paid = all.filter(b => PAID.includes(b.status));
+  const month = iso(new Date()).slice(0, 7);
+  const revMonth = paid.filter(b => b.date.startsWith(month)).reduce((s, b) => s + b.total, 0);
+  const newCnt = all.filter(b => b.status === 'new').length;
+  const today = iso(new Date());
+  const todayCnt = all.filter(b => b.date === today && b.status !== 'cancelled').length;
+  const conv = all.length ? Math.round(paid.length / all.length * 100) : 0;
+  const avg = paid.length ? Math.round(paid.reduce((s, b) => s + b.total, 0) / paid.length) : 0;
+  $('#kpis').innerHTML = [
+    ['Выручка за месяц', rub(revMonth) || '0 ₽', `${paid.length} оплаченных броней`],
+    ['Новые заявки', newCnt, 'ждут подтверждения'],
+    ['Гостей сегодня', todayCnt, 'заездов и записей на сегодня'],
+    ['Конверсия', conv + '%', `средний чек ${rub(avg) || '0 ₽'}`],
+  ].map(([l, v, s]) => `<div class="kpi"><small>${l}</small><b>${v}</b><span>${s}</span></div>`).join('');
+
+  const days = Array.from({ length: 14 }, (_, i) => iso(addDays(i - 6)));
+  const vals = days.map(d => paid.filter(b => b.date === d).reduce((s, b) => s + b.total, 0));
+  const max = Math.max(...vals, 1);
+  $('#bars').innerHTML = days.map((d, i) => `<div class="bar"><i data-v="${rub(vals[i]) || '0 ₽'}" style="height:${vals[i] / max * 100}%;${d === today ? 'background:var(--brand-d)' : ''}"></i><small>${new Date(d + 'T12:00').getDate()}</small></div>`).join('');
+
+  const maxS = Math.max(...STATUSES.map(s => all.filter(b => b.status === s.id).length), 1);
+  $('#funnel').innerHTML = STATUSES.map(s => { const n = all.filter(b => b.status === s.id).length; return `<div class="fn"><span>${s.label}</span><div><i style="width:${n / maxS * 100}%;background:${s.color}"></i></div><b>${n}</b></div>`; }).join('');
+
+  const up = all.filter(b => b.date >= today && ['new', 'confirmed'].includes(b.status)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
+  $('#upcoming').innerHTML = up.length ? `<table class="list">${up.map(b => `<tr><td><b>${dShort(b.date)}</b></td><td>${esc(b.itemName)}</td><td>${esc(b.name)}<br><span style="color:var(--muted)">${esc(b.phone)}</span></td><td><span class="pill" style="background:${stOf(b.status).color}">${stOf(b.status).label}</span></td></tr>`).join('')}</table>` : '<div class="empty">Нет предстоящих заездов</div>';
+
+  const counts = {};
+  all.filter(b => b.status !== 'cancelled').forEach(b => counts[b.itemName] = (counts[b.itemName] || 0) + 1);
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  $('#topItems').innerHTML = top.length ? top.map(([n, c]) => `<div><span>${esc(n)}</span><b>${c}</b></div>`).join('') : '<div class="empty" style="border:0">Нет данных</div>';
+}
+
+function renderKanban(all) {
+  $('#kanban').innerHTML = STATUSES.map(s => {
+    const items = all.filter(b => b.status === s.id);
+    return `<div class="col" data-st="${s.id}"><h3><i style="background:${s.color}"></i>${s.label}<span>${items.length}</span></h3>${items.map(card).join('')}</div>`;
+  }).join('');
+  $$('.kc').forEach(c => c.ondragstart = e => e.dataTransfer.setData('text', c.dataset.id));
+  $$('.col').forEach(col => {
+    col.ondragover = e => { e.preventDefault(); col.classList.add('drop'); };
+    col.ondragleave = () => col.classList.remove('drop');
+    col.ondrop = e => { e.preventDefault(); Store.update(e.dataTransfer.getData('text'), { status: col.dataset.st }); render(); };
+  });
+  $$('.kc select').forEach(sel => sel.onchange = () => { Store.update(sel.dataset.id, { status: sel.value }); render(); });
+}
+function card(b) {
+  const flags = [b.pet && '🐕 питомец', b.late && '🌙 поздний заезд', b.mine && '📱 из приложения',
+    b.refBy && '👥 от друга ' + esc(b.refBy), b.coinsSpent && '🌰 −' + b.coinsSpent, b.gift && '🎁 подарок'].filter(Boolean);
+  return `<div class="kc" draggable="true" data-id="${b.id}"><b>${esc(b.itemName)}</b>
+    <div class="m">${dShort(b.date)} · ${b.guests} чел.<br>${esc(b.name)} · ${esc(b.phone)}${b.comment ? `<br>«${esc(b.comment)}»` : ''}</div>
+    ${flags.length ? `<div class="flags">${flags.map(f => `<em>${f}</em>`).join('')}</div>` : ''}
+    <div class="f"><strong>${rub(b.total) || '0 ₽'}</strong><select data-id="${b.id}">${STATUSES.map(s => `<option value="${s.id}" ${s.id === b.status ? 'selected' : ''}>${s.label}</option>`).join('')}</select></div></div>`;
+}
+
+function renderOcc(all) {
+  const days = Array.from({ length: 14 }, (_, i) => addDays(i));
+  const rows = PLACES.filter(p => p.bookable).map(p => {
+    const cells = days.map(d => {
+      const ds = iso(d);
+      const bs = all.filter(b => b.placeId === p.id && b.date === ds && b.status !== 'cancelled');
+      const cls = bs.length ? (p.bookable === 'event' ? 'p' : 'b') : '';
+      return `<td class="c ${cls}" title="${bs.map(b => esc(b.name)).join(', ')}">${bs.length ? (p.bookable === 'event' ? bs.reduce((s, b) => s + b.guests, 0) : '●') : ''}</td>`;
+    }).join('');
+    return `<tr><td class="n">${esc(p.name)}</td>${cells}</tr>`;
+  }).join('');
+  const head = days.map(d => `<th class="${[0, 6].includes(d.getDay()) ? 'we' : ''}">${d.toLocaleDateString('ru-RU', { weekday: 'short' })}<br>${d.getDate()}</th>`).join('');
+  $('#occ').innerHTML = `<table><tr><th></th>${head}</tr>${rows}</table>`;
+}
+
+function renderList(all) {
+  $('#list').innerHTML = all.length ? `<tr><th>№</th><th>Дата</th><th>Объект / услуга</th><th>Гость</th><th>Гостей</th><th>Сумма</th><th>Статус</th><th></th></tr>` +
+    all.map(b => `<tr><td>${b.id}</td><td>${dShort(b.date)}</td><td>${esc(b.itemName)}</td><td>${esc(b.name)}<br><span style="color:var(--muted)">${esc(b.phone)}</span></td><td>${b.guests}</td><td><b>${rub(b.total) || '0 ₽'}</b></td><td><span class="pill" style="background:${stOf(b.status).color}">${stOf(b.status).label}</span></td><td><button title="Удалить" data-del="${b.id}">🗑</button></td></tr>`).join('')
+    : '<tr><td class="empty">Броней пока нет — нажмите «Демо-данные» или оформите бронь в приложении</td></tr>';
+  $$('[data-del]').forEach(x => x.onclick = () => { if (confirm('Удалить бронь?')) { Store.remove(x.dataset.del); render(); } });
+}
+
+/* демо-данные для проверки интерфейса */
+$('#demoBtn').onclick = () => {
+  const names = ['Анна Попова', 'Иван Канев', 'Мария Игнатова', 'Олег Туркин', 'Елена Сивкова', 'Дмитрий Носов', 'Ольга Шахова', 'Павел Габов', 'Светлана Уляшева', 'Артём Мальцев'];
+  const pool = [...PLACES.filter(p => p.bookable && p.bookable !== 'event').map(p => ({ placeId: p.id, name: p.name, price: p.price, house: p.cat === 'house' })),
+                ...SERVICES.map(s => ({ svcId: s.id, name: s.name, price: s.price, per: true }))];
+  const list = Store.all().filter(b => !b.demo);
+  for (let i = 0; i < 28; i++) {
+    const it = pool[Math.floor(Math.random() * pool.length)];
+    const off = Math.floor(Math.random() * 20) - 7;
+    const date = iso(addDays(off));
+    if (it.placeId && list.some(b => b.placeId === it.placeId && b.date === date)) continue;
+    const cap = it.house ? 6 : it.placeId && it.placeId.startsWith('gaz4') ? 4 : 10;
+    const guests = Math.min(cap, it.per ? 1 + Math.floor(Math.random() * 5) : 2 + Math.floor(Math.random() * 5));
+    const pet = it.house && Math.random() < .25;
+    const total = it.per ? it.price * guests : it.price + (it.house ? Math.max(0, guests - 4) * EXTRAS.extraGuest + (pet ? EXTRAS.pet : 0) : 0);
+    const status = off < 0 ? (Math.random() < .85 ? 'done' : 'cancelled') : off === 0 ? 'checkedin' : ['new', 'new', 'confirmed', 'confirmed', 'cancelled'][Math.floor(Math.random() * 5)];
+    list.push({ id: 'D' + (1000 + i), placeId: it.placeId || null, svcId: it.svcId || null, itemName: it.name, date, guests, pet, late: false,
+      name: names[i % names.length], phone: '+7 912 ' + (100 + i * 7) + '-' + (10 + i) + '-' + (40 + i), comment: '', total, status, createdAt: new Date().toISOString(), demo: true,
+      ...(Math.random() < .25 ? { refBy: ['YAG-4K2P', 'YAG-9QXZ', 'YAG-1M7D'][i % 3], refDiscount: Math.min(500, total), total: Math.max(0, total - 500) } : {}),
+      ...(Math.random() < .5 ? { loyaltyCode: refCodeFromPhone('+7912' + i) } : {}) });
+  }
+  Store.save(list.sort((a, b) => b.date.localeCompare(a.date)));
+  render();
+};
+$('#clearBtn').onclick = () => { if (confirm('Удалить все брони?')) { Store.save([]); render(); } };
+window.addEventListener('storage', render);
+render();
+</script>
+</body>
+</html>
