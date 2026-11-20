@@ -75,9 +75,12 @@ const PLACES = [
   { id: 'rent', cat: 'service', name: 'Прокат', img: 'img/bike.jpg', price: 300, unit: 'от', bookable: 'event', coords: [61.6663, 50.9886],
     desc: 'Прокат велосипедов (500 ₽) и наборов для бадминтона (300 ₽).',
     facts: ['Велосипед — 500 ₽', 'Бадминтон — 300 ₽'] },
-  { id: 'parking', cat: 'service', name: 'Парковка и вход', img: 'img/cover.jpg', price: null, unit: '', bookable: null, coords: [61.666219, 50.991075],
-    desc: 'Главный въезд и парковка. Администратор на территории с 9:00 до 21:00.',
-    facts: ['Звонок: 717-006'] },
+  { id: 'parking', cat: 'service', icon: 'img/cut/parking.svg', name: 'Парковка', img: 'img/cover.jpg', price: null, unit: '', bookable: null, coords: [61.668126, 50.991515],
+    desc: 'Бесплатная парковка для гостей парка. У домиков есть свои места на 2–3 машины.',
+    facts: ['Бесплатно', 'Рядом со входом'] },
+  { id: 'entrance', cat: 'service', icon: 'img/cut/entrance.svg', name: 'Вход в парк', img: 'img/cover.jpg', price: null, unit: '', bookable: null, coords: [61.66795, 50.99118],
+    desc: 'Главный вход в парк «Яг-Морт». Отсюда начинаются тропинки к домикам, беседкам и бане. Администратор на территории с 9:00 до 21:00.',
+    facts: ['Администратор 9:00–21:00', 'Звонок: 717-006'] },
 ];
 
 // Услуги и события — каталог товаров группы

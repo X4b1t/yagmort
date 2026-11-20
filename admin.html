@@ -389,7 +389,7 @@ function renderList(all) {
 /* ---------- объекты на карте: перетаскивание, добавление, редактирование ---------- */
 let plMap = null, PL = [], plSel = null, plAdding = false, plLayouts = {}, plDraft = null;
 const BOOKABLE = [['', 'Не бронируется'], ['stay', 'Проживание (сутки)'], ['day', 'Аренда на день / часы'], ['event', 'Запись на активность (за человека)']];
-const CUTOUTS = [['', 'Значок категории'], ['img/cut/house.png', 'Домик (вырезка)'], ['img/cut/gazebo.png', 'Беседка (вырезка)'], ['img/cut/banya.png', 'Баня (вырезка)']];
+const CUTOUTS = [['', 'Значок категории'], ['img/cut/house.png', 'Домик (вырезка)'], ['img/cut/gazebo.png', 'Беседка (вырезка)'], ['img/cut/banya.png', 'Баня (вырезка)'], ['img/cut/parking.svg', 'Парковка'], ['img/cut/entrance.svg', 'Вход в парк']];
 function plToast(t) { const el = $('#plToast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2200); }
 let ymapsReady;
 function loadYmaps() {
