@@ -263,7 +263,7 @@ const placeFromRow = r => ({ id: r.id, cat: r.cat, name: r.name, img: r.img, ico
 Object.assign(Api, {
   async places(all = false) {
     const q = '/rest/v1/places?select=*&order=sort.asc' + (all ? '' : '&active=eq.true');
-    return (await this.req(q, { auth: all })).map(placeFromRow);
+    return (await this.req(q, { auth: all })).filter(r => !isEventRow(r)).map(placeFromRow);
   },
   savePlace(p) { return this.req('/rest/v1/places?on_conflict=id', { method: 'POST', body: placeToRow(p), auth: true, prefer: 'resolution=merge-duplicates,return=minimal' }); },
   movePlace(id, coords) { return this.req('/rest/v1/places?id=eq.' + encodeURIComponent(id), { method: 'PATCH', body: { lat: coords[0], lng: coords[1], updated_at: new Date().toISOString() }, auth: true, prefer: 'return=minimal' }); },
@@ -365,18 +365,28 @@ const DEFAULT_EVENTS = [
   ...SERVICES.map((s, i) => ({ ...s, when: s.when || '', pitch: '', published: true, sort: i })),
   ...IDEAS.map((e, i) => ({ ...e, published: false, sort: 100 + i })),
 ];
-const eventToRow = e => ({ id: e.id, tag: e.tag || 'Событие', name: e.name, img: e.img || null, price: e.price ?? null, old_price: e.oldPrice ?? null,
-  when_text: e.when || '', descr: e.desc || '', pitch: e.pitch || '', published: !!e.published, sort: e.sort ?? 0 });
-const eventFromRow = r => ({ id: r.id, tag: r.tag, name: r.name, img: r.img, price: r.price, oldPrice: r.old_price, when: r.when_text || '',
-  desc: r.descr || '', pitch: r.pitch || '', published: r.published, sort: r.sort });
+// События хранятся в таблице places: строки с id «ev-…» и меткой '__event__' в facts.
+// Так не нужна отдельная таблица, а права те же: гости читают только active = true (опубликованные),
+// администратор видит и меняет всё. Встроенный список (DEFAULT_EVENTS) — основа, записи в базе его переопределяют.
+const EV_MARK = '__event__';
+const isEventRow = p => String(p.id).startsWith('ev-') && (p.facts || [])[0] === EV_MARK;
+const eventToPlaceRow = e => ({ id: 'ev-' + e.id, cat: 'activity', name: e.name, img: e.img || null, icon: null, price: e.price ?? null,
+  unit: (e.when || '').slice(0, 60), bookable: null, lat: 0, lng: 0, descr: e.desc || '',
+  facts: [EV_MARK, e.tag || 'Событие', e.oldPrice != null ? String(e.oldPrice) : '', e.pitch || '', e.deleted ? 'deleted' : '', e.published && !e.deleted ? '1' : '0'],
+  sort: e.sort ?? 0, updated_at: new Date().toISOString(),
+  // active = «гости могут прочитать запись». Черновики закрыты базой; запись о скрытии исходной активности
+  // открыта, иначе гости показали бы её по встроенному списку.
+  active: (!!e.published && !e.deleted) || !!DEFAULT_EVENTS.find(d => d.id === e.id && d.published) });
+const eventFromPlaceRow = r => { const f = r.facts || [];
+  return { id: r.id.slice(3), tag: f[1] || 'Событие', name: r.name, img: r.img, price: r.price, oldPrice: f[2] ? +f[2] : null, when: r.unit || '',
+    desc: r.descr || '', pitch: f[3] || '', published: f[5] != null ? f[5] === '1' : !!r.active, deleted: f[4] === 'deleted', sort: r.sort }; };
 
 Object.assign(Api, {
   async events(all = false) {
-    const q = '/rest/v1/events?select=*&order=sort.asc' + (all ? '' : '&published=eq.true');
-    return (await this.req(q, { auth: all })).map(eventFromRow);
+    const q = '/rest/v1/places?select=*&id=like.ev-*&order=sort.asc' + (all ? '' : '&active=eq.true');
+    return (await this.req(q, { auth: all })).filter(isEventRow).map(eventFromPlaceRow);
   },
-  saveEvent(e) { return this.req('/rest/v1/events?on_conflict=id', { method: 'POST', body: { ...eventToRow(e), updated_at: new Date().toISOString() }, auth: true, prefer: 'resolution=merge-duplicates,return=minimal' }); },
-  removeEvent(id) { return this.req('/rest/v1/events?id=eq.' + encodeURIComponent(id), { method: 'DELETE', auth: true }); },
+  saveEvent(e) { return this.req('/rest/v1/places?on_conflict=id', { method: 'POST', body: eventToPlaceRow(e), auth: true, prefer: 'resolution=merge-duplicates,return=minimal' }); },
 });
 
 const EventsStore = {
@@ -385,22 +395,22 @@ const EventsStore = {
   saveLocal(list) { try { localStorage.setItem(this.key, JSON.stringify(list)); } catch {} },
   // all = true — вместе с черновиками (для админки)
   async load(all = false) {
-    let list = null;
-    if (REMOTE) { try { const rows = await Api.events(all); if (rows.length) list = rows; } catch {} }
-    list ||= this.local() || DEFAULT_EVENTS;
-    return all ? list : list.filter(e => e.published);
+    let saved = [];
+    if (REMOTE) { try { saved = await Api.events(all); } catch {} }
+    else saved = this.local() || [];
+    const byId = new Map(DEFAULT_EVENTS.map(e => [e.id, { ...e }]));
+    for (const e of saved) byId.set(e.id, e);
+    const list = [...byId.values()].filter(e => !e.deleted && (all || e.published));
+    return list.sort((a, b) => a.sort - b.sort);
   },
   async save(e) {
     if (REMOTE) return Api.saveEvent(e);
-    const l = this.local() || DEFAULT_EVENTS.map(x => ({ ...x }));
+    const l = this.local() || [];
     const i = l.findIndex(x => x.id === e.id);
     i >= 0 ? (l[i] = e) : l.push(e);
     this.saveLocal(l);
   },
-  async remove(id) {
-    if (REMOTE) return Api.removeEvent(id);
-    this.saveLocal((this.local() || DEFAULT_EVENTS).filter(x => x.id !== id));
-  },
+  // удаление = пометка deleted (встроенное событие иначе вернулось бы из кода)
+  async remove(id, e) { return this.save({ ...e, id, published: false, deleted: true }); },
 };
-// подменяет содержимое SERVICES (на него ссылаются экраны активностей и бронирование)
 const applyEvents = list => { SERVICES.splice(0, SERVICES.length, ...list); };

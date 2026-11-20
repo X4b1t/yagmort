@@ -232,7 +232,7 @@ form[hidden]{display:none!important}
   </div>
 </main>
 
-<script src="data.js?v=7"></script>
+<script src="data.js?v=8"></script>
 <script>
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -606,10 +606,10 @@ function openEventForm(id) {
   const opt = (list, v) => list.map(([k, l]) => `<option value="${esc(k)}" ${String(v ?? '') === k ? 'selected' : ''}>${esc(l)}</option>`).join('');
   const imgs = EV_IMAGES.concat(e.img && !EV_IMAGES.some(x => x[0] === e.img) ? [[e.img, 'Загруженное фото']] : []);
   $('#evForm').innerHTML = `<h2>${id ? 'Изменить' : 'Новое событие'} <small><a href="#" id="evClose">закрыть ✕</a></small></h2>
-    <label class="fld">Название<input id="eN" value="${esc(e.name)}" maxlength="100"></label>
+    <label class="fld">Название<input id="eN" value="${esc(e.name)}" maxlength="80"></label>
     <div class="fld2">
       <label class="fld">Тип<select id="eT">${opt(EV_TAGS.map(t => [t, t]), e.tag)}</select></label>
-      <label class="fld">Когда<input id="eW" value="${esc(e.when)}" placeholder="каждую субботу, 12:00" maxlength="100"></label>
+      <label class="fld">Когда<input id="eW" value="${esc(e.when)}" placeholder="каждую субботу, 12:00" maxlength="60"></label>
     </div>
     <div class="fld2">
       <label class="fld">Цена, ₽<input id="eP" type="number" min="0" value="${e.price ?? ''}" placeholder="пусто — по запросу"></label>
@@ -651,7 +651,7 @@ function openEventForm(id) {
   };
   $('#eDel') && ($('#eDel').onclick = async () => {
     if (!confirm(`Удалить «${e.name}»? Брони, где это событие уже выбрано, останутся.`)) return;
-    try { await EventsStore.remove(e.id); } catch (err) { return alert('Не удалось удалить: ' + err.message); }
+    try { await EventsStore.remove(e.id, e); } catch (err) { return alert('Не удалось удалить: ' + err.message); }
     EV = EV.filter(x => x.id !== e.id); close(); plToast('Удалено'); renderEvents();
   });
 }
