@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#0f2a1c">
 <title>Парк Яг-Морт</title>
 <link rel="icon" href="img/logo.jpg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Яг-Морт">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -285,6 +291,7 @@ ul.rules li{margin-bottom:6px}
       </div>
       <button class="tip" data-go="route"><span class="ic">🚌</span><span><b>Как добраться</b><small>Маршрут на машине и автобусе</small></span></button>
       <button class="tip" data-go="rules"><span class="ic">📋</span><span><b>Правила бронирования</b><small>Важно прочитать перед заездом</small></span></button>
+      <button class="tip" id="installBtn" hidden><span class="ic">📲</span><span><b>Установить приложение</b><small>Иконка «Яг-Морт» на главном экране телефона</small></span></button>
       <a class="admin-link" href="admin.html">Панель администратора →</a>
     </div>
   </section>
@@ -813,6 +820,21 @@ updatePromo();
 syncRemote();
 // объекты карты из базы (админ мог их переставить или добавить)
 PlacesStore.load().then(list => { applyPlaces(list); renderStay(); renderList(); drawPlaceMarks(); }).catch(() => {});
+
+/* ---------- установка на телефон ---------- */
+let installPrompt = null;
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; $('#installBtn').hidden = false; });
+if (!standalone()) $('#installBtn').hidden = false;
+$('#installBtn').onclick = async () => {
+  if (installPrompt) { installPrompt.prompt(); const r = await installPrompt.userChoice; installPrompt = null; if (r.outcome === 'accepted') $('#installBtn').hidden = true; return; }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  openSheet(`<div class="in" style="padding-top:8px"><h2>Установить «Яг-Морт»</h2>
+    <ol class="steps" style="margin-top:12px">${ios
+      ? '<li>Откройте сайт в <b>Safari</b></li><li>Нажмите кнопку <b>«Поделиться»</b> (квадрат со стрелкой вверх)</li><li>Выберите <b>«На экран „Домой“»</b> и нажмите «Добавить»</li>'
+      : '<li>Откройте меню браузера <b>⋮</b> справа вверху</li><li>Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b></li><li>Подтвердите установку</li>'}</ol>
+    <p class="muted" style="margin-top:10px">Приложение откроется без адресной строки, с логотипом парка на иконке.</p></div>`);
+};
 
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2600); }
 
