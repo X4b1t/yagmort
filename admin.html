@@ -89,6 +89,30 @@ table.list td{padding:10px 8px;border-bottom:1px solid var(--line)}
 .pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;color:#fff;white-space:nowrap}
 .empty{color:var(--muted);text-align:center;padding:30px}
 form[hidden]{display:none!important}
+/* события и идеи */
+.ev-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.ev-chip{padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:700;font-size:13px}
+.ev-chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.ev{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.ev.draft{border-style:dashed}
+.ev .ph{height:140px;background:#ccc center/cover;position:relative}
+.ev .ph span{position:absolute;top:10px;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px}
+.ev .ph .tg{left:10px;background:rgba(255,255,255,.92);color:#173d29}
+.ev .ph .st{right:10px;color:#fff}
+.ev .bd{padding:12px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.ev h3{font-size:15.5px;line-height:1.25}
+.ev .meta{font-size:12.5px;color:var(--muted)}
+.ev .meta b{color:var(--text)} .ev .meta s{margin-left:4px}
+.ev .ds{font-size:13px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ev .pitch{font-size:12.5px;line-height:1.45;background:color-mix(in srgb,#ca8a04 12%,transparent);border-radius:10px;padding:8px 10px}
+.ev .act{display:flex;gap:8px;margin-top:auto;padding-top:6px}
+.ev .act .btn{flex:1;padding:9px 10px;font-size:13px}
+.btn.warn{background:#ea580c}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;display:grid;place-items:center;padding:16px}
+.modal[hidden]{display:none}
+.modal .panel{width:min(560px,100%);max-height:90vh;overflow-y:auto}
 /* объекты на карте */
 .pl-wrap{display:grid;grid-template-columns:1fr 360px;gap:14px;align-items:start}
 #plMap{height:calc(100vh - 150px);min-height:460px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#cfe6c4;position:relative}
@@ -131,6 +155,7 @@ form[hidden]{display:none!important}
   <button data-v="list">📋 Все брони</button>
   <button data-v="bonus">🌰 Бонусы</button>
   <button data-v="places">🗺️ Объекты</button>
+  <button data-v="events">💡 События и идеи</button>
   <div class="sp"></div>
   <a href="img/qr.png" target="_blank" rel="noopener">▣ QR-код сайта для печати</a>
   <a href="index.html">← Приложение для гостей</a>
@@ -182,6 +207,11 @@ form[hidden]{display:none!important}
 
   <section class="view" id="v-occ"><div class="panel occ"><h2>Загрузка объектов <small>зелёный — домики/беседки, синий — активности</small></h2><div id="occ"></div></div></section>
 
+  <section class="view" id="v-events">
+    <div class="ev-bar" id="evBar"></div>
+    <div class="ev-grid" id="evGrid"></div>
+  </section>
+
   <section class="view" id="v-places">
     <div class="pl-wrap">
       <div id="plMap"></div>
@@ -202,7 +232,7 @@ form[hidden]{display:none!important}
   </div>
 </main>
 
-<script src="data.js"></script>
+<script src="data.js?v=7"></script>
 <script>
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -213,7 +243,7 @@ const dShort = s => new Date(s + 'T12:00').toLocaleDateString('ru-RU', { day: 'n
 const stOf = id => STATUSES.find(s => s.id === id);
 const PAID = ['confirmed', 'checkedin', 'done'];
 
-const TITLES = { dash: ['Обзор', 'Ключевые показатели парка'], kanban: ['Заявки', 'Перетаскивайте карточки между колонками'], occ: ['Загрузка', 'Занятость объектов на 14 дней вперёд'], list: ['Все брони', 'Полный список заявок'], bonus: ['Бонусы', 'Программа «Шишки Яг-Морта» и «Приведи друга»'], places: ['Объекты на карте', 'Перетаскивайте объекты мышкой, нажмите — чтобы изменить'] };
+const TITLES = { dash: ['Обзор', 'Ключевые показатели парка'], kanban: ['Заявки', 'Перетаскивайте карточки между колонками'], occ: ['Загрузка', 'Занятость объектов на 14 дней вперёд'], list: ['Все брони', 'Полный список заявок'], bonus: ['Бонусы', 'Программа «Шишки Яг-Морта» и «Приведи друга»'], places: ['Объекты на карте', 'Перетаскивайте объекты мышкой, нажмите — чтобы изменить'], events: ['События, программы и акции', 'Черновики видите только вы. «Показать гостям» — и событие появится в приложении'] };
 let view = 'dash';
 $$('aside [data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; render(); });
 
@@ -222,7 +252,7 @@ function render() {
   $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
   $('#hTitle').textContent = TITLES[view][0];
   $('#hSub').textContent = TITLES[view][1] + ' · ' + new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
-  ({ dash: renderDash, kanban: renderKanban, occ: renderOcc, list: renderList, bonus: renderBonus, places: renderPlaces })[view](ALL);
+  ({ dash: renderDash, kanban: renderKanban, occ: renderOcc, list: renderList, bonus: renderBonus, places: renderPlaces, events: renderEvents })[view](ALL);
 }
 
 /* ---------- данные: база Supabase или локальное хранилище ---------- */
@@ -523,6 +553,109 @@ function newPlaceAt(coords) {
   PL.push(p); plSel = p.id; plDraft = null; drawMarks(); renderSide();
 }
 
+/* ---------- события, программы и акции: черновики → «Показать гостям» ---------- */
+let EV = null, evFilter = 'all', evArmed = null, evArmTimer = null;
+const EV_TAGS = ['Событие', 'Программа', 'Акция', 'Мастер-класс', 'Квест', 'Прогулка', 'Дети', 'Прокат'];
+const EV_IMAGES = [['img/cover.jpg', 'Лес (обложка)'], ['img/trail.jpg', 'Тропа'], ['img/knight.jpg', 'Рыцарский день'], ['img/quest.jpg', 'Квест'], ['img/disco.jpg', 'Дискотека'],
+  ['img/events.jpg', 'Праздник'], ['img/stage.jpg', 'Сцена'], ['img/brides.jpg', 'Поляна невест'], ['img/banya.jpg', 'Баня'], ['img/house.jpg', 'Домик'], ['img/gazebo12_big.jpg', 'Беседка'], ['img/bike.jpg', 'Велосипед'], ['img/badminton.jpg', 'Бадминтон']];
+async function renderEvents() {
+  if (!EV) { $('#evGrid').innerHTML = '<div class="empty">Загружаем…</div>'; EV = await EventsStore.load(true); }
+  const drafts = EV.filter(e => !e.published).length, pub = EV.length - drafts;
+  $('#evBar').innerHTML = [['all', `Все · ${EV.length}`], ['draft', `🔒 Черновики · ${drafts}`], ['pub', `👁 Видят гости · ${pub}`]]
+    .map(([k, l]) => `<button class="ev-chip ${evFilter === k ? 'on' : ''}" data-evf="${k}">${l}</button>`).join('') +
+    '<span style="flex:1"></span><button class="btn" id="evNew">+ Новое событие</button>';
+  const list = EV.filter(e => evFilter === 'all' || (evFilter === 'draft' ? !e.published : e.published))
+    .sort((a, b) => (a.published - b.published) || (a.sort - b.sort)); // черновики-идеи сверху
+  $('#evGrid').innerHTML = list.length ? list.map(e => `
+    <div class="ev ${e.published ? '' : 'draft'}">
+      <div class="ph" style="background-image:url('${esc(e.img || 'img/cover.jpg')}')"><span class="tg">${esc(e.tag)}</span>
+        <span class="st" style="background:${e.published ? 'var(--brand-d)' : '#64748b'}">${e.published ? '👁 Видят гости' : '🔒 Только админ'}</span></div>
+      <div class="bd">
+        <h3>${esc(e.name)}</h3>
+        <div class="meta">${e.when ? '🗓 ' + esc(e.when) + ' · ' : ''}<b>${e.price != null ? (rub(e.price) || '0 ₽') : 'цена по запросу'}</b>${e.oldPrice ? `<s>${rub(e.oldPrice)}</s>` : ''}</div>
+        <div class="ds">${esc(e.desc)}</div>
+        ${e.pitch ? `<div class="pitch">💡 <b>Почему стоит:</b> ${esc(e.pitch)}</div>` : ''}
+        <div class="act">
+          <button class="btn ${evArmed === e.id ? 'warn' : e.published ? 'ghost' : ''}" data-evpub="${esc(e.id)}">${evArmed === e.id ? (e.published ? 'Да, скрыть' : 'Да, показать') : (e.published ? 'Скрыть от гостей' : 'Показать гостям')}</button>
+          <button class="btn sec" data-evedit="${esc(e.id)}" style="flex:0 0 auto">Изменить</button>
+        </div>
+      </div>
+    </div>`).join('') : '<div class="empty">Здесь пока пусто</div>';
+  $$('[data-evf]').forEach(b => b.onclick = () => { evFilter = b.dataset.evf; renderEvents(); });
+  $('#evNew').onclick = () => openEventForm(null);
+  $$('[data-evedit]').forEach(b => b.onclick = () => openEventForm(b.dataset.evedit));
+  $$('[data-evpub]').forEach(b => b.onclick = () => togglePublish(b.dataset.evpub));
+}
+// первое нажатие «взводит» кнопку, второе в течение 4 секунд — публикует или скрывает
+async function togglePublish(id) {
+  const e = EV.find(x => x.id === id);
+  if (evArmed !== id) {
+    evArmed = id; clearTimeout(evArmTimer);
+    evArmTimer = setTimeout(() => { evArmed = null; renderEvents(); }, 4000);
+    return renderEvents();
+  }
+  evArmed = null; clearTimeout(evArmTimer);
+  const next = { ...e, published: !e.published };
+  try { await EventsStore.save(next); } catch (err) { return alert('Не удалось сохранить: ' + err.message); }
+  Object.assign(e, next);
+  plToast(next.published ? `«${e.name}» теперь видят гости` : `«${e.name}» скрыто от гостей`);
+  renderEvents();
+}
+function openEventForm(id) {
+  const e = id ? { ...EV.find(x => x.id === id) } : { id: '', tag: 'Событие', name: '', img: 'img/cover.jpg', price: null, oldPrice: null, when: '', desc: '', pitch: '', published: false, sort: 200 + EV.length };
+  const opt = (list, v) => list.map(([k, l]) => `<option value="${esc(k)}" ${String(v ?? '') === k ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  const imgs = EV_IMAGES.concat(e.img && !EV_IMAGES.some(x => x[0] === e.img) ? [[e.img, 'Загруженное фото']] : []);
+  $('#evForm').innerHTML = `<h2>${id ? 'Изменить' : 'Новое событие'} <small><a href="#" id="evClose">закрыть ✕</a></small></h2>
+    <label class="fld">Название<input id="eN" value="${esc(e.name)}" maxlength="100"></label>
+    <div class="fld2">
+      <label class="fld">Тип<select id="eT">${opt(EV_TAGS.map(t => [t, t]), e.tag)}</select></label>
+      <label class="fld">Когда<input id="eW" value="${esc(e.when)}" placeholder="каждую субботу, 12:00" maxlength="100"></label>
+    </div>
+    <div class="fld2">
+      <label class="fld">Цена, ₽<input id="eP" type="number" min="0" value="${e.price ?? ''}" placeholder="пусто — по запросу"></label>
+      <label class="fld">Старая цена (зачёркнутая)<input id="eO" type="number" min="0" value="${e.oldPrice ?? ''}"></label>
+    </div>
+    <label class="fld">Описание для гостей<textarea id="eD" rows="3" maxlength="2000">${esc(e.desc)}</textarea></label>
+    <label class="fld">Заметка для владельца (гости не видят)<textarea id="eQ" rows="2" maxlength="2000">${esc(e.pitch)}</textarea></label>
+    <div class="fld">Фото
+      <div class="thumb"><img id="eImgPrev" src="${esc(e.img || 'img/cover.jpg')}" alt=""><span><select id="eI">${opt(imgs, e.img)}</select><br>
+        <input type="file" id="eFile" accept="image/jpeg,image/png,image/webp" style="margin-top:6px"></span></div></div>
+    <label class="fld" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="eV" ${e.published ? 'checked' : ''}> Показывать гостям</label>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn" id="eSave" style="flex:1">Сохранить</button>
+      ${id ? '<button class="btn sec" id="eDel" style="color:#dc2626">Удалить</button>' : ''}
+    </div>`;
+  $('#evModal').hidden = false;
+  const close = () => { $('#evModal').hidden = true; };
+  $('#evClose').onclick = ev => { ev.preventDefault(); close(); };
+  $('#evModal').onclick = ev => { if (ev.target.id === 'evModal') close(); };
+  $('#eI').onchange = () => { $('#eImgPrev').src = $('#eI').value; };
+  $('#eFile').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    if (f.size > 5 * 1024 * 1024) return alert('Файл больше 5 МБ');
+    try {
+      const url = REMOTE ? await Api.upload(f) : await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+      $('#eI').insertAdjacentHTML('beforeend', `<option value="${esc(url)}" selected>Загруженное фото</option>`); $('#eI').value = url; $('#eImgPrev').src = url;
+    } catch (err) { alert('Не удалось загрузить: ' + err.message); }
+  };
+  $('#eSave').onclick = async () => {
+    const num = v => v === '' ? null : Math.max(0, Math.round(+v));
+    const saved = { ...e, name: $('#eN').value.trim(), tag: $('#eT').value, when: $('#eW').value.trim(), price: num($('#eP').value), oldPrice: num($('#eO').value),
+      desc: $('#eD').value.trim(), pitch: $('#eQ').value.trim(), img: $('#eI').value, published: $('#eV').checked };
+    if (!saved.name) return alert('Укажите название');
+    if (!saved.id) saved.id = 'ev-' + Date.now().toString(36);
+    $('#eSave').disabled = true;
+    try { await EventsStore.save(saved); } catch (err) { $('#eSave').disabled = false; return alert('Не удалось сохранить: ' + err.message); }
+    const i = EV.findIndex(x => x.id === saved.id); i >= 0 ? (EV[i] = saved) : EV.push(saved);
+    close(); plToast('Сохранено: ' + saved.name); renderEvents();
+  };
+  $('#eDel') && ($('#eDel').onclick = async () => {
+    if (!confirm(`Удалить «${e.name}»? Брони, где это событие уже выбрано, останутся.`)) return;
+    try { await EventsStore.remove(e.id); } catch (err) { return alert('Не удалось удалить: ' + err.message); }
+    EV = EV.filter(x => x.id !== e.id); close(); plToast('Удалено'); renderEvents();
+  });
+}
+
 /* демо-данные для проверки интерфейса */
 $('#demoBtn').onclick = () => {
   const names = ['Анна Попова', 'Иван Канев', 'Мария Игнатова', 'Олег Туркин', 'Елена Сивкова', 'Дмитрий Носов', 'Ольга Шахова', 'Павел Габов', 'Светлана Уляшева', 'Артём Мальцев'];
@@ -558,5 +691,6 @@ if (REMOTE) {
 } else load();
 </script>
 <div class="pl-toast" id="plToast"></div>
+<div class="modal" id="evModal" hidden><div class="panel" id="evForm"></div></div>
 </body>
 </html>

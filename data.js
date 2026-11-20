@@ -310,3 +310,97 @@ const PlacesStore = {
 };
 // подменяет содержимое PLACES (на него ссылаются все экраны)
 const applyPlaces = list => { PLACES.splice(0, PLACES.length, ...list); };
+
+/* ---------- События, программы и акции ----------
+   Активности из группы ВК (SERVICES) видны гостям сразу. Идеи ниже — предложения владельцу:
+   они лежат черновиками в админке, пока администратор не нажмёт «Показать гостям». */
+const IDEAS = [
+  { id: 'banya-thursday', tag: 'Акция', name: 'Банный четверг', img: 'img/banya.jpg', price: 8000, oldPrice: 10000, when: 'пн–чт, весь сезон',
+    desc: 'Баня на 3 часа и домик на сутки в будни со скидкой 20%. Веники и чай включены.',
+    pitch: 'Заполняет будни, когда домики пустуют. Работает вместе с шишками ×2 в будни из бонусной программы.' },
+  { id: 'legends-night', tag: 'Событие', name: 'Ночь легенд Яг-Морта', img: 'img/trail.jpg', price: 1200, when: 'каждую пятницу, 19:00',
+    desc: 'Вечерняя прогулка по лесной тропе с фонарями. Рассказчик ведёт по местам коми-легенд о лесном великане Яг-Морте, в конце — иван-чай у костра.',
+    pitch: 'Формат, которого нет у конкурентов: он вырастает из названия парка. Затраты — гид, фонари и чай.' },
+  { id: 'new-year-trail', tag: 'Событие', name: 'Новогодняя тропа: Дед Мороз в гостях у Яг-Морта', img: 'img/cover.jpg', price: 1800, when: '20–30 декабря, 11:00 и 15:00',
+    desc: 'Детский квест по зимнему лесу: задания от Яг-Морта, встреча с Дедом Морозом, подарок и горячий чай.',
+    pitch: 'Пик семейного спроса в году. Билеты продаются заранее, гости заодно бронируют домики на праздники.' },
+  { id: 'maslenitsa', tag: 'Событие', name: 'Лесная Масленица', img: 'img/events.jpg', price: 300, when: 'последние выходные Масленицы',
+    desc: 'Блины, хороводы, перетягивание каната, катание с горки и сжигание чучела на поляне.',
+    pitch: 'Массовый семейный праздник с недорогим входом. Окупается арендой беседок и продажей еды.' },
+  { id: 'team-building', tag: 'Программа', name: 'Тимбилдинг в лесу', img: 'img/quest.jpg', price: 25000, when: 'по заявке, лучше в будни',
+    desc: 'Командный квест, беседка на 12 человек, мангал и ведущий. Цена за группу до 10 человек, каждый следующий — 2 000 ₽.',
+    pitch: 'Корпоративные бюджеты и загрузка в будни. Одна заявка — сразу 10–30 гостей.' },
+  { id: 'birthday', tag: 'Программа', name: 'День рождения в лесу', img: 'img/disco.jpg', price: 15000, when: 'по заявке',
+    desc: 'Беседка на 12 человек, квест или детская дискотека с аниматором и зона для торта. Цена за группу до 12 гостей.',
+    pitch: 'Готовый пакет продавать проще, чем отдельные услуги. Дети потом зовут на праздник в парк друзей.' },
+  { id: 'kort-aika-craft', tag: 'Мастер-класс', name: 'Мастерские «Кӧрт Айка»', img: 'img/events.jpg', price: 900, when: 'по субботам, 12:00',
+    desc: 'Коми ремёсла от мастеров: кузнечное дело, выпечка югыдтыдорского хлеба, роспись по дереву.',
+    pitch: 'У группы уже есть альбомы про «Кӧрт Айку» и югыдтыдорский хлеб. Работа с мастерами даёт контент для соцсетей и интерес туристов.' },
+  { id: 'forest-party', tag: 'Событие', name: 'Forest Party', img: 'img/stage.jpg', price: 700, when: 'раз в месяц, суббота 18:00',
+    desc: 'Музыкальная вечеринка на лесной сцене: диджей, гирлянды между соснами, фудкорт.',
+    pitch: 'В группе уже есть альбом Forest Party на 109 фото. Если сделать её регулярной, гости будут возвращаться каждый месяц.' },
+  { id: 'plein-air', tag: 'Событие', name: 'Пленэр «Лесной человек»', img: 'img/trail.jpg', price: 300, when: 'раз в сезон',
+    desc: 'Конкурс для художников и художественных школ: рисуем лес и Яг-Морта, лучшие работы выставляем в парке и в группе.',
+    pitch: 'Такой пленэр в парке уже проводился. Он привлекает школы и родителей, а работы участников — бесплатное оформление парка.' },
+  { id: 'forest-cinema', tag: 'Событие', name: 'Кино под соснами', img: 'img/stage.jpg', price: 350, when: 'июнь–август, суббота 22:00',
+    desc: 'Летние кинопоказы на сцене: пледы, попкорн и иван-чай.',
+    pitch: 'Сцена уже есть, нужны проектор и экран. Приводит пары и молодёжь вечером, когда парк обычно пустеет.' },
+  { id: 'snowshoes', tag: 'Акция', name: 'Снегоступы и зимняя тропа', img: 'img/trail.jpg', price: 500, when: 'декабрь–март',
+    desc: 'Прокат снегоступов на 2 часа и маршрут по зимнему лесу с указателями.',
+    pitch: 'Зимний доход без больших вложений: снегоступы недорогие, маршрут — та же тропа.' },
+  { id: 'gift-certificate', tag: 'Акция', name: 'Подарочный сертификат', img: 'img/house.jpg', price: 3000, when: 'круглый год',
+    desc: 'Сертификат на домик, баню или беседку — в подарок на праздник. Действует год.',
+    pitch: 'Деньги приходят заранее, а пик продаж — Новый год, 23 февраля и 8 марта. Каждый сертификат приводит нового гостя.' },
+  { id: 'weekend-pass', tag: 'Акция', name: 'Абонемент «Лесные выходные»', img: 'img/gazebo12_big.jpg', price: 14000, oldPrice: 17500, when: 'на сезон',
+    desc: '5 дней в беседке на 4 человека по цене 4. Можно делить с друзьями.',
+    pitch: 'Удерживает постоянных гостей на весь сезон и даёт предоплату.' },
+  { id: 'dawn-yoga', tag: 'Событие', name: 'Йога на рассвете', img: 'img/brides.jpg', price: 500, when: 'июнь–август, сб и вс 7:00',
+    desc: 'Йога и дыхательные практики на поляне среди сосен с инструктором.',
+    pitch: 'Регулярная аудитория с утра в выходные. Инструктор приводит своих учеников.' },
+  { id: 'bride-photo', tag: 'Программа', name: 'Фотосессия на Поляне невест', img: 'img/brides.jpg', price: 4500, when: 'по записи',
+    desc: 'Час съёмки с фотографом на Поляне невест и у домиков, 30 обработанных фото.',
+    pitch: 'Поляна невест уже есть. Пакет с фотографом продаётся дороже простой аренды, а фото уходят в соцсети пар.' },
+];
+const DEFAULT_EVENTS = [
+  ...SERVICES.map((s, i) => ({ ...s, when: s.when || '', pitch: '', published: true, sort: i })),
+  ...IDEAS.map((e, i) => ({ ...e, published: false, sort: 100 + i })),
+];
+const eventToRow = e => ({ id: e.id, tag: e.tag || 'Событие', name: e.name, img: e.img || null, price: e.price ?? null, old_price: e.oldPrice ?? null,
+  when_text: e.when || '', descr: e.desc || '', pitch: e.pitch || '', published: !!e.published, sort: e.sort ?? 0 });
+const eventFromRow = r => ({ id: r.id, tag: r.tag, name: r.name, img: r.img, price: r.price, oldPrice: r.old_price, when: r.when_text || '',
+  desc: r.descr || '', pitch: r.pitch || '', published: r.published, sort: r.sort });
+
+Object.assign(Api, {
+  async events(all = false) {
+    const q = '/rest/v1/events?select=*&order=sort.asc' + (all ? '' : '&published=eq.true');
+    return (await this.req(q, { auth: all })).map(eventFromRow);
+  },
+  saveEvent(e) { return this.req('/rest/v1/events?on_conflict=id', { method: 'POST', body: { ...eventToRow(e), updated_at: new Date().toISOString() }, auth: true, prefer: 'resolution=merge-duplicates,return=minimal' }); },
+  removeEvent(id) { return this.req('/rest/v1/events?id=eq.' + encodeURIComponent(id), { method: 'DELETE', auth: true }); },
+});
+
+const EventsStore = {
+  key: 'yagmort.events.v1',
+  local() { try { return JSON.parse(localStorage.getItem(this.key)); } catch { return null; } },
+  saveLocal(list) { try { localStorage.setItem(this.key, JSON.stringify(list)); } catch {} },
+  // all = true — вместе с черновиками (для админки)
+  async load(all = false) {
+    let list = null;
+    if (REMOTE) { try { const rows = await Api.events(all); if (rows.length) list = rows; } catch {} }
+    list ||= this.local() || DEFAULT_EVENTS;
+    return all ? list : list.filter(e => e.published);
+  },
+  async save(e) {
+    if (REMOTE) return Api.saveEvent(e);
+    const l = this.local() || DEFAULT_EVENTS.map(x => ({ ...x }));
+    const i = l.findIndex(x => x.id === e.id);
+    i >= 0 ? (l[i] = e) : l.push(e);
+    this.saveLocal(l);
+  },
+  async remove(id) {
+    if (REMOTE) return Api.removeEvent(id);
+    this.saveLocal((this.local() || DEFAULT_EVENTS).filter(x => x.id !== id));
+  },
+};
+// подменяет содержимое SERVICES (на него ссылаются экраны активностей и бронирование)
+const applyEvents = list => { SERVICES.splice(0, SERVICES.length, ...list); };

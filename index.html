@@ -309,7 +309,7 @@ ul.rules li{margin-bottom:6px}
   <div class="toast" id="toast"></div>
 </div>
 
-<script src="data.js"></script>
+<script src="data.js?v=7"></script>
 <script>
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -361,8 +361,14 @@ function renderStay() {
     .map(p => tileHTML(`data-place="${p.id}"`, p.img || 'img/cover.jpg', p.name, CAT_ONE[p.cat], `<b>${rub(p.price)}</b>${p.unit ? ' / ' + esc(p.unit) : ''}`)).join('');
 }
 renderStay();
-$('#evList').innerHTML = SERVICES.map(s => tileHTML(`data-svc="${s.id}"`, s.img, s.name, s.tag, `<b>${rub(s.price)}</b>${s.oldPrice ? `<s>${rub(s.oldPrice)}</s>` : ''}`)).join('');
-$('#svcGrid').innerHTML = SERVICES.map(s => `<button class="svc" data-svc="${s.id}"><div class="ph" style="background-image:url('${s.img}')"><span class="tag">${esc(s.tag)}</span></div><div class="bd"><h3>${esc(s.name)}</h3><div class="pr"><b>${rub(s.price)}</b>${s.oldPrice ? `<s>${rub(s.oldPrice)}</s>` : ''}</div></div></button>`).join('');
+// цена «за группу» у программ и акций, у остальных — за человека
+const svcPerPerson = s => !['Программа', 'Акция'].includes(s.tag);
+const svcPrice = s => s.price == null ? '<b>по запросу</b>' : `<b>${rub(s.price)}</b>${s.oldPrice ? `<s>${rub(s.oldPrice)}</s>` : ''}`;
+function renderEventLists() {
+  $('#evList').innerHTML = SERVICES.map(s => tileHTML(`data-svc="${s.id}"`, s.img || 'img/cover.jpg', s.name, s.tag, (s.when ? esc(s.when) + ' · ' : '') + svcPrice(s))).join('');
+  $('#svcGrid').innerHTML = SERVICES.map(s => `<button class="svc" data-svc="${s.id}"><div class="ph" style="background-image:url('${esc(s.img || 'img/cover.jpg')}')"><span class="tag">${esc(s.tag)}</span></div><div class="bd"><h3>${esc(s.name)}</h3>${s.when ? `<div class="pr">🗓 ${esc(s.when)}</div>` : ''}<div class="pr">${svcPrice(s)}</div></div></button>`).join('');
+}
+renderEventLists();
 
 /* ---------- карта (Яндекс Карты API 2.1) ---------- */
 let ymapsPromise, layouts = {};
@@ -549,9 +555,10 @@ function routeTo(lat, lng) { window.open(`https://yandex.ru/maps/?rtext=~${lat},
 
 function openService(id) {
   const s = serviceById(id);
-  openSheet(`<div class="cover" style="background-image:url('${s.img}')"></div><div class="in">
+  openSheet(`<div class="cover" style="background-image:url('${esc(s.img || 'img/cover.jpg')}')"></div><div class="in">
     <h2>${esc(s.name)}</h2>
-    <div class="price"><b>${rub(s.price)}</b>${s.oldPrice ? ` <s>${rub(s.oldPrice)}</s>` : ''}${s.price ? ' / человек' : ''}</div>
+    <div class="price">${s.price == null ? '<b>Цена по запросу</b>' : `<b>${rub(s.price)}</b>${s.oldPrice ? ` <s>${rub(s.oldPrice)}</s>` : ''}${s.price ? (svcPerPerson(s) ? ' / человек' : ' / за всё') : ''}`}</div>
+    ${s.when ? `<p style="font-weight:700;margin-bottom:8px">🗓 ${esc(s.when)}</p>` : ''}
     <p>${esc(s.desc)}</p>
     <button class="cta" data-book="svc:${s.id}">Записаться</button>
     <a class="cta ghost" href="${PARK.vkMessages}" target="_blank" rel="noopener">Уточнить в сообщениях ВК</a>
@@ -586,7 +593,8 @@ function openBooking(target) {
 function bookItem() { return bk.svcId ? serviceById(bk.svcId) : placeById(bk.placeId); }
 function calcTotal() {
   const it = bookItem();
-  if (bk.svcId || it.bookable === 'event') return (it.price || 0) * bk.guests;
+  if (bk.svcId) return svcPerPerson(it) ? (it.price || 0) * bk.guests : (it.price || 0);
+  if (it.bookable === 'event') return (it.price || 0) * bk.guests;
   let t = it.price || 0;
   if (it.cat === 'house') {
     t += Math.max(0, bk.guests - 4) * EXTRAS.extraGuest;
@@ -628,7 +636,7 @@ function renderBooking() {
       <label class="check"><input type="checkbox" id="fLate" ${bk.late ? 'checked' : ''}><span>Позднее заселение 20:30–21:30</span><em>${Loyalty.summary().level.id === 'sprout' ? '+' + rub(EXTRAS.lateCheckin) : 'бесплатно 🌲'}</em></label>
       ${bk.guests > 4 ? `<p class="muted" style="padding-top:8px">Гостей сверх 4: ${bk.guests - 4} × ${rub(EXTRAS.extraGuest)}</p>` : ''}` : ''}
     <div class="field" style="margin-top:14px"><label>Имя</label><input id="fName" value="${esc(bk.name)}" placeholder="Как к вам обращаться" autocomplete="name"></div>
-    <div class="field"><label>Телефон</label><input id="fPhone" type="tel" value="${esc(bk.phone)}" placeholder="+7 ___ ___-__-__" autocomplete="tel"></div>
+    <div class="field"><label>Телефон</label><input id="fPhone" type="tel" inputmode="tel" value="${esc(fmtPhone(bk.phone))}" placeholder="+7 (___) ___-__-__" autocomplete="tel"></div>
     <div class="field"><label>Комментарий</label><textarea id="fComment" rows="2" placeholder="Пожелания, время приезда">${esc(bk.comment)}</textarea></div>
     ${(() => {
       const P = pricing(), L = P.L;
@@ -656,7 +664,7 @@ function renderBooking() {
   $('#fSubmit').onclick = async () => {
     sync();
     if (!bk.name.trim()) return toast('Укажите имя');
-    if (bk.phone.replace(/\D/g, '').length < 10) return toast('Укажите телефон');
+    if (!phoneOk(bk.phone)) return toast('Укажите телефон полностью: +7 и 10 цифр');
     const P = pricing();
     const booking = { id: newBookingId(), placeId: bk.placeId, svcId: bk.svcId, itemName: it.name,
       date: bk.date, guests: bk.guests, pet: bk.pet, late: bk.late, name: bk.name.trim(), phone: bk.phone.trim(), comment: bk.comment.trim(),
@@ -730,7 +738,7 @@ function renderBonus() {
       <div class="loy"><div class="lv">🌱 Программа лояльности</div><div class="bal">+${LOYALTY.welcome} 🌰</div><div class="sub">за вступление — сразу на счёт</div></div>
       <div class="card" style="margin-top:14px">
         <div class="field"><label>Имя</label><input id="jName" value="${esc(S.me.name || '')}" placeholder="Ваше имя"></div>
-        <div class="field"><label>Телефон</label><input id="jPhone" type="tel" value="${esc(S.me.phone || '')}" placeholder="+7 ___ ___-__-__"></div>
+        <div class="field"><label>Телефон</label><input id="jPhone" type="tel" inputmode="tel" value="${esc(fmtPhone(S.me.phone))}" placeholder="+7 (___) ___-__-__" autocomplete="tel"></div>
         <div class="field"><label>День рождения (необязательно)</label><input id="jBday" type="date"></div>
         ${S.me.refBy ? `<p style="font-size:13.5px;color:var(--brand-d);font-weight:700;margin-bottom:6px">🎁 Вас пригласил друг (${esc(S.me.refBy)}) — −${rub(LOYALTY.refFriendDiscount)} на первую бронь</p>` : ''}
         <button class="cta" id="joinBtn">Вступить и получить ${LOYALTY.welcome} шишек</button>
@@ -739,7 +747,7 @@ function renderBonus() {
     $('#joinBtn').onclick = () => {
       const name = $('#jName').value.trim(), phone = $('#jPhone').value.trim();
       if (!name) return toast('Укажите имя');
-      if (phone.replace(/\D/g, '').length < 10) return toast('Укажите телефон');
+      if (!phoneOk(phone)) return toast('Укажите телефон полностью: +7 и 10 цифр');
       const code = refCodeFromPhone(phone);
       if (S.me.refBy === code) Loyalty.set({ refBy: null }); // нельзя пригласить самого себя
       Loyalty.set({ name, phone, bday: $('#jBday').value || null, code, joinedAt: new Date().toISOString() });
@@ -820,6 +828,7 @@ updatePromo();
 syncRemote();
 // объекты карты из базы (админ мог их переставить или добавить)
 PlacesStore.load().then(list => { applyPlaces(list); renderStay(); renderList(); drawPlaceMarks(); }).catch(() => {});
+EventsStore.load().then(list => { applyEvents(list); renderEventLists(); }).catch(() => {});
 
 /* ---------- установка на телефон ---------- */
 let installPrompt = null;
@@ -835,6 +844,41 @@ $('#installBtn').onclick = async () => {
       : '<li>Откройте меню браузера <b>⋮</b> справа вверху</li><li>Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b></li><li>Подтвердите установку</li>'}</ol>
     <p class="muted" style="margin-top:10px">Приложение откроется без адресной строки, с логотипом парка на иконке.</p></div>`);
 };
+
+/* ---------- телефон: +7 подставляется сам, маска +7 (912) 345-67-89 ---------- */
+function fmtPhone(v) {
+  let d = String(v || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d[0] === '8') d = '7' + d.slice(1);  // 8 912… → +7 912…
+  else if (d[0] !== '7') d = '7' + d;      // 912… → +7 912…
+  const p = d.slice(1, 11);
+  let s = '+7';
+  if (p.length) s += ' (' + p.slice(0, 3);
+  if (p.length >= 3) s += ')';
+  if (p.length > 3) s += ' ' + p.slice(3, 6);
+  if (p.length > 6) s += '-' + p.slice(6, 8);
+  if (p.length > 8) s += '-' + p.slice(8, 10);
+  return s;
+}
+const phoneOk = v => String(v || '').replace(/\D/g, '').length === 11;
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if (el.type !== 'tel' || el.value) return;
+  el.value = '+7 ('; requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length));
+});
+document.addEventListener('focusout', e => { const el = e.target; if (el.type === 'tel' && el.value.replace(/\D/g, '') === '7') el.value = ''; });
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.type !== 'tel') return;
+  const prev = el.dataset.prev || '';
+  let digits = el.value.replace(/\D/g, '');
+  if (digits.length > 11) digits = digits.slice(1); // вставили полный номер поверх «+7 (»
+  // стёрли скобку/пробел/дефис — стираем и цифру перед ним, иначе маска вернёт символ обратно
+  if (e.inputType && e.inputType.startsWith('delete') && digits === prev.replace(/\D/g, '') && digits.length > 1) digits = digits.slice(0, -1);
+  el.value = digits.length <= 1 && e.inputType && e.inputType.startsWith('delete') ? '+7 (' : fmtPhone(digits);
+  el.dataset.prev = el.value;
+  el.setSelectionRange(el.value.length, el.value.length);
+});
 
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2600); }
 
