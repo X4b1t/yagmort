@@ -72,7 +72,7 @@ const PLACES = [
   { id: 'trail', cat: 'activity', name: 'Тропа Яг-Морта', img: 'img/trail.jpg', price: 1500, unit: 'человек', bookable: 'event', coords: [61.6680, 50.9910],
     desc: 'Прогулка по лесной тропе с историями о Яг-Морте — лесном великане из коми-легенд.',
     facts: ['Рейтинг 5,0', 'Для детей и взрослых'] },
-  { id: 'rent', cat: 'service', name: 'Прокат', img: 'img/bike.jpg', price: 300, unit: 'от', bookable: 'event', coords: [61.6663, 50.9886],
+  { id: 'rent', cat: 'service', icon: 'img/cut/bike.svg', name: 'Прокат', img: 'img/bike.jpg', price: 300, unit: 'от', bookable: 'event', coords: [61.6663, 50.9886],
     desc: 'Прокат велосипедов (500 ₽) и наборов для бадминтона (300 ₽).',
     facts: ['Велосипед — 500 ₽', 'Бадминтон — 300 ₽'] },
   { id: 'parking', cat: 'service', icon: 'img/cut/parking.svg', name: 'Парковка', img: 'img/cover.jpg', price: null, unit: '', bookable: null, coords: [61.668126, 50.991515],
