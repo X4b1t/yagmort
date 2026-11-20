@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 110" width="300" height="220">
+  <defs>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d058"/>
+      <stop offset="1" stop-color="#15803d"/>
+    </linearGradient>
+    <radialGradient id="tyre" cx=".5" cy=".5" r=".5">
+      <stop offset=".78" stop-color="#374151"/>
+      <stop offset="1" stop-color="#111827"/>
+    </radialGradient>
+  </defs>
+  <!-- тень -->
+  <ellipse cx="75" cy="102" rx="66" ry="5" fill="#000" opacity=".18"/>
+  <!-- колёса -->
+  <g>
+    <circle cx="36" cy="72" r="28" fill="none" stroke="url(#tyre)" stroke-width="7"/>
+    <circle cx="114" cy="72" r="28" fill="none" stroke="url(#tyre)" stroke-width="7"/>
+    <circle cx="36" cy="72" r="23" fill="#fff" fill-opacity=".35" stroke="#cbd5e1" stroke-width="1.6"/>
+    <circle cx="114" cy="72" r="23" fill="#fff" fill-opacity=".35" stroke="#cbd5e1" stroke-width="1.6"/>
+    <g stroke="#94a3b8" stroke-width="1.1">
+      <path d="M36 49v46M13 72h46M20 56l32 32M52 56L20 88"/>
+      <path d="M114 49v46M91 72h46M98 56l32 32M130 56l-32 32"/>
+    </g>
+    <circle cx="36" cy="72" r="3.5" fill="#475569"/>
+    <circle cx="114" cy="72" r="3.5" fill="#475569"/>
+  </g>
+  <!-- рама -->
+  <g fill="none" stroke="url(#frame)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 72 L62 72 L52 36 Z"/>
+    <path d="M62 72 L100 38 L52 36"/>
+    <path d="M114 72 L100 38"/>
+  </g>
+  <!-- корзинка с шишкой и ёлочкой -->
+  <path d="M104 22 h26 l-4 14 h-18 z" fill="#c58a4f" stroke="#7c4a1e" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M108 26h18M109 31h16" stroke="#7c4a1e" stroke-width="1.1"/>
+  <path d="M117 6 l7 14 h-14 z" fill="#1fbf4a" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>
+  <!-- руль -->
+  <path d="M100 38 L96 22 M88 20 h12 l4 -3" fill="none" stroke="#1f2937" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- седло -->
+  <path d="M52 36 L50 28" stroke="#1f2937" stroke-width="4" stroke-linecap="round"/>
+  <path d="M40 26 q10 -5 20 0 q-3 4 -10 4 h-8 z" fill="#1f2937"/>
+  <!-- педаль и звезда -->
+  <circle cx="62" cy="72" r="6" fill="#e5e7eb" stroke="#475569" stroke-width="2"/>
+  <path d="M62 72 l7 8" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <rect x="65" y="79" width="9" height="3.5" rx="1.5" fill="#1f2937"/>
+</svg>
