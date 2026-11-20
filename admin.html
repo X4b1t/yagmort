@@ -88,7 +88,32 @@ table.list th{text-align:left;color:var(--muted);font-weight:700;padding:8px;bor
 table.list td{padding:10px 8px;border-bottom:1px solid var(--line)}
 .pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;color:#fff;white-space:nowrap}
 .empty{color:var(--muted);text-align:center;padding:30px}
+form[hidden]{display:none!important}
+/* объекты на карте */
+.pl-wrap{display:grid;grid-template-columns:1fr 360px;gap:14px;align-items:start}
+#plMap{height:calc(100vh - 150px);min-height:460px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#cfe6c4;position:relative}
+.pl-side{max-height:calc(100vh - 150px);overflow-y:auto}
+.pl-row{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:8px;border-radius:10px;font-size:13.5px}
+.pl-row:hover,.pl-row.on{background:var(--col)}
+.pl-row img,.pl-row .em{width:44px;height:34px;object-fit:contain;flex:0 0 44px;display:grid;place-items:center;font-size:20px}
+.pl-row small{display:block;color:var(--muted);font-size:11.5px}
+.pl-row .off{opacity:.45}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:12px;font-weight:700;color:var(--muted)}
+.fld input,.fld select,.fld textarea{font-weight:500;font-size:13.5px;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.thumb{display:flex;gap:10px;align-items:center}
+.thumb img{width:84px;height:60px;object-fit:cover;border-radius:8px;background:var(--col)}
+.thumb img.ic{object-fit:contain}
+.hint{font-size:12px;color:var(--muted);margin:-2px 0 10px}
+.pin{position:absolute;left:-20px;top:-20px;width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:19px;box-shadow:0 4px 12px rgba(0,0,0,.3);border:3px solid var(--c);cursor:grab}
+.pph{position:absolute;left:-36px;bottom:0;width:72px;display:flex;flex-direction:column;align-items:center;cursor:grab;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+.pph img{width:72px;height:auto;display:block}
+.pph i{width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid #fff;margin-top:-3px}
+.pph.sel img,.pin.sel{transform:scale(1.18)}
+.pl-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f2a1c;color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;font-weight:600;opacity:0;transition:.2s;pointer-events:none;z-index:99}
+.pl-toast.on{opacity:1}
 @media (max-width:900px){
+  .pl-wrap{grid-template-columns:1fr} #plMap{height:60vh} .pl-side{max-height:none}
   body{flex-direction:column}
   aside{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;padding:12px 16px;flex:0 0 auto}
   .brand{margin:0 10px 0 0}.sp,aside a{display:none}
@@ -105,15 +130,38 @@ table.list td{padding:10px 8px;border-bottom:1px solid var(--line)}
   <button data-v="occ">📅 Загрузка</button>
   <button data-v="list">📋 Все брони</button>
   <button data-v="bonus">🌰 Бонусы</button>
+  <button data-v="places">🗺️ Объекты</button>
   <div class="sp"></div>
   <a href="index.html">← Приложение для гостей</a>
 </aside>
 <main>
+  <div id="login" hidden style="max-width:380px;margin:12vh auto 0">
+    <div class="panel">
+      <h2 style="font-size:20px">Вход для администратора</h2>
+      <form id="loginForm" style="display:flex;flex-direction:column;gap:10px">
+        <input id="lEmail" type="email" placeholder="E-mail" autocomplete="username" required style="padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)">
+        <input id="lPass" type="password" placeholder="Пароль" autocomplete="current-password" required style="padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)">
+        <button class="btn" type="submit" style="padding:12px">Войти</button>
+        <p id="lErr" style="color:#dc2626;font-size:13px;min-height:18px"></p>
+        <a href="#" id="lForgot" style="font-size:13px;color:var(--muted)">Забыли пароль?</a>
+      </form>
+      <form id="pwForm" hidden style="display:flex;flex-direction:column;gap:10px">
+        <p style="font-size:13.5px">Придумайте новый пароль для входа в админку (не короче 8 символов).</p>
+        <input id="pw1" type="password" placeholder="Новый пароль" autocomplete="new-password" minlength="8" required style="padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)">
+        <input id="pw2" type="password" placeholder="Повторите пароль" autocomplete="new-password" minlength="8" required style="padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)">
+        <button class="btn" type="submit" style="padding:12px">Сохранить пароль</button>
+        <p id="pwErr" style="color:#dc2626;font-size:13px;min-height:18px"></p>
+      </form>
+    </div>
+  </div>
+  <div id="app">
   <header>
     <div><h1 id="hTitle">Обзор</h1><p id="hSub"></p></div>
     <div style="display:flex;gap:8px">
       <button class="btn sec" id="demoBtn">Демо-данные</button>
       <button class="btn sec" id="clearBtn">Очистить</button>
+      <button class="btn sec" id="reloadBtn" hidden>Обновить</button>
+      <button class="btn sec" id="logoutBtn" hidden>Выйти</button>
     </div>
   </header>
 
@@ -133,6 +181,13 @@ table.list td{padding:10px 8px;border-bottom:1px solid var(--line)}
 
   <section class="view" id="v-occ"><div class="panel occ"><h2>Загрузка объектов <small>зелёный — домики/беседки, синий — активности</small></h2><div id="occ"></div></div></section>
 
+  <section class="view" id="v-places">
+    <div class="pl-wrap">
+      <div id="plMap"></div>
+      <div class="panel pl-side" id="plSide"></div>
+    </div>
+  </section>
+
   <section class="view" id="v-bonus">
     <div class="kpis" id="bKpis"></div>
     <div class="grid">
@@ -143,6 +198,7 @@ table.list td{padding:10px 8px;border-bottom:1px solid var(--line)}
   </section>
 
   <section class="view" id="v-list"><div class="panel" style="overflow-x:auto"><table class="list" id="list"></table></div></section>
+  </div>
 </main>
 
 <script src="data.js"></script>
@@ -156,7 +212,7 @@ const dShort = s => new Date(s + 'T12:00').toLocaleDateString('ru-RU', { day: 'n
 const stOf = id => STATUSES.find(s => s.id === id);
 const PAID = ['confirmed', 'checkedin', 'done'];
 
-const TITLES = { dash: ['Обзор', 'Ключевые показатели парка'], kanban: ['Заявки', 'Перетаскивайте карточки между колонками'], occ: ['Загрузка', 'Занятость объектов на 14 дней вперёд'], list: ['Все брони', 'Полный список заявок'], bonus: ['Бонусы', 'Программа «Шишки Яг-Морта» и «Приведи друга»'] };
+const TITLES = { dash: ['Обзор', 'Ключевые показатели парка'], kanban: ['Заявки', 'Перетаскивайте карточки между колонками'], occ: ['Загрузка', 'Занятость объектов на 14 дней вперёд'], list: ['Все брони', 'Полный список заявок'], bonus: ['Бонусы', 'Программа «Шишки Яг-Морта» и «Приведи друга»'], places: ['Объекты на карте', 'Перетаскивайте объекты мышкой, нажмите — чтобы изменить'] };
 let view = 'dash';
 $$('aside [data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; render(); });
 
@@ -165,9 +221,67 @@ function render() {
   $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
   $('#hTitle').textContent = TITLES[view][0];
   $('#hSub').textContent = TITLES[view][1] + ' · ' + new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
-  const all = Store.all();
-  ({ dash: renderDash, kanban: renderKanban, occ: renderOcc, list: renderList, bonus: renderBonus })[view](all);
+  ({ dash: renderDash, kanban: renderKanban, occ: renderOcc, list: renderList, bonus: renderBonus, places: renderPlaces })[view](ALL);
 }
+
+/* ---------- данные: база Supabase или локальное хранилище ---------- */
+let ALL = [];
+let placesLoaded = false;
+async function load() {
+  if (!placesLoaded) { applyPlaces(await PlacesStore.load()); placesLoaded = true; } // для «Загрузки» и названий
+  if (!REMOTE) { ALL = Store.all(); return render(); }
+  try { ALL = await Api.list(); render(); }
+  catch (e) { if (!Api.session()) showLogin(); else alert('Ошибка загрузки: ' + e.message); }
+}
+async function setStatus(id, status) {
+  if (REMOTE) { try { await Api.setStatus(id, status); } catch (e) { return alert('Не удалось сохранить: ' + e.message); } }
+  else Store.update(id, { status });
+  load();
+}
+async function removeBooking(id) {
+  if (REMOTE) { try { await Api.remove(id); } catch (e) { return alert('Не удалось удалить: ' + e.message); } }
+  else Store.remove(id);
+  load();
+}
+function showLogin() { $('#login').hidden = false; $('#app').hidden = true; }
+function showApp() { $('#login').hidden = true; $('#app').hidden = false; }
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault(); $('#lErr').textContent = '';
+  try {
+    await Api.login($('#lEmail').value.trim(), $('#lPass').value);
+    if (!(await Api.isAdmin())) { Api.logout(); throw new Error('Этот e-mail не добавлен в список администраторов'); }
+    $('#lPass').value = ''; showApp(); load();
+  } catch (err) { $('#lErr').textContent = /invalid/i.test(err.message) ? 'Неверный e-mail или пароль' : err.message; }
+};
+$('#lForgot').onclick = async e => {
+  e.preventDefault();
+  const email = $('#lEmail').value.trim();
+  if (!email) { $('#lErr').textContent = 'Введите e-mail, на него придёт ссылка'; return $('#lEmail').focus(); }
+  try { await Api.recover(email); $('#lErr').style.color = 'var(--brand-d)'; $('#lErr').textContent = 'Письмо отправлено. Откройте ссылку из письма на этом устройстве.'; }
+  catch (err) { $('#lErr').style.color = '#dc2626'; $('#lErr').textContent = err.message; }
+};
+// пришли по ссылке из письма: #access_token=…&type=recovery
+(function () {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('error_description')) { history.replaceState(null, '', location.pathname); setTimeout(() => { $('#lErr').textContent = 'Ссылка устарела — запросите новую'; }, 0); return; }
+  if (h.get('type') !== 'recovery' || !h.get('access_token')) return;
+  Api.saveSession({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token'), expires_in: +h.get('expires_in') || 3600 });
+  history.replaceState(null, '', location.pathname);
+  window.__recovery = true;
+})();
+$('#pwForm').onsubmit = async e => {
+  e.preventDefault(); $('#pwErr').textContent = '';
+  if ($('#pw1').value.length < 8) return $('#pwErr').textContent = 'Пароль короче 8 символов';
+  if ($('#pw1').value !== $('#pw2').value) return $('#pwErr').textContent = 'Пароли не совпадают';
+  try {
+    await Api.setPassword($('#pw1').value);
+    $('#pw1').value = $('#pw2').value = '';
+    window.__recovery = false; $('#pwForm').hidden = true; $('#loginForm').hidden = false;
+    if (await Api.isAdmin()) { showApp(); load(); } else { Api.logout(); showLogin(); $('#lErr').textContent = 'Пароль изменён, но этот e-mail не администратор'; }
+  } catch (err) { $('#pwErr').textContent = err.message; }
+};
+$('#logoutBtn').onclick = () => { Api.logout(); ALL = []; showLogin(); };
+$('#reloadBtn').onclick = load;
 
 function renderBonus(all) {
   const live = all.filter(b => b.status !== 'cancelled');
@@ -237,9 +351,9 @@ function renderKanban(all) {
   $$('.col').forEach(col => {
     col.ondragover = e => { e.preventDefault(); col.classList.add('drop'); };
     col.ondragleave = () => col.classList.remove('drop');
-    col.ondrop = e => { e.preventDefault(); Store.update(e.dataTransfer.getData('text'), { status: col.dataset.st }); render(); };
+    col.ondrop = e => { e.preventDefault(); col.classList.remove('drop'); setStatus(e.dataTransfer.getData('text'), col.dataset.st); };
   });
-  $$('.kc select').forEach(sel => sel.onchange = () => { Store.update(sel.dataset.id, { status: sel.value }); render(); });
+  $$('.kc select').forEach(sel => sel.onchange = () => setStatus(sel.dataset.id, sel.value));
 }
 function card(b) {
   const flags = [b.pet && '🐕 питомец', b.late && '🌙 поздний заезд', b.mine && '📱 из приложения',
@@ -267,9 +381,145 @@ function renderOcc(all) {
 
 function renderList(all) {
   $('#list').innerHTML = all.length ? `<tr><th>№</th><th>Дата</th><th>Объект / услуга</th><th>Гость</th><th>Гостей</th><th>Сумма</th><th>Статус</th><th></th></tr>` +
-    all.map(b => `<tr><td>${b.id}</td><td>${dShort(b.date)}</td><td>${esc(b.itemName)}</td><td>${esc(b.name)}<br><span style="color:var(--muted)">${esc(b.phone)}</span></td><td>${b.guests}</td><td><b>${rub(b.total) || '0 ₽'}</b></td><td><span class="pill" style="background:${stOf(b.status).color}">${stOf(b.status).label}</span></td><td><button title="Удалить" data-del="${b.id}">🗑</button></td></tr>`).join('')
+    all.map(b => `<tr><td>${shortId(b.id)}</td><td>${dShort(b.date)}</td><td>${esc(b.itemName)}</td><td>${esc(b.name)}<br><span style="color:var(--muted)">${esc(b.phone)}</span></td><td>${b.guests}</td><td><b>${rub(b.total) || '0 ₽'}</b></td><td><span class="pill" style="background:${stOf(b.status).color}">${stOf(b.status).label}</span></td><td><button title="Удалить" data-del="${b.id}">🗑</button></td></tr>`).join('')
     : '<tr><td class="empty">Броней пока нет — нажмите «Демо-данные» или оформите бронь в приложении</td></tr>';
-  $$('[data-del]').forEach(x => x.onclick = () => { if (confirm('Удалить бронь?')) { Store.remove(x.dataset.del); render(); } });
+  $$('[data-del]').forEach(x => x.onclick = () => { if (confirm('Удалить бронь?')) removeBooking(x.dataset.del); });
+}
+
+/* ---------- объекты на карте: перетаскивание, добавление, редактирование ---------- */
+let plMap = null, PL = [], plSel = null, plAdding = false, plLayouts = {}, plDraft = null;
+const BOOKABLE = [['', 'Не бронируется'], ['stay', 'Проживание (сутки)'], ['day', 'Аренда на день / часы'], ['event', 'Запись на активность (за человека)']];
+const CUTOUTS = [['', 'Значок категории'], ['img/cut/house.png', 'Домик (вырезка)'], ['img/cut/gazebo.png', 'Беседка (вырезка)'], ['img/cut/banya.png', 'Баня (вырезка)']];
+function plToast(t) { const el = $('#plToast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2200); }
+let ymapsReady;
+function loadYmaps() {
+  return ymapsReady ||= new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU' + (YMAPS_KEY ? '&apikey=' + YMAPS_KEY : '');
+    s.onload = () => ymaps.ready(res); s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+function plLayout(p, sel) {
+  const c = (CATS[p.cat] || CATS.service), k = [p.cat, p.icon, sel, p.active !== false].join('|');
+  const op = p.active === false ? 'opacity:.45;' : '';
+  return plLayouts[k] ||= ymaps.templateLayoutFactory.createClass(p.icon
+    ? `<div class="pph ${sel ? 'sel' : ''}" style="--c:${c.color};${op}"><img src="${esc(p.icon)}" alt=""><i></i></div>`
+    : `<div class="pin ${sel ? 'sel' : ''}" style="--c:${c.color};${op}">${c.icon}</div>`);
+}
+const plShape = p => p.icon ? { type: 'Rectangle', coordinates: [[-36, -56], [36, 0]] } : { type: 'Circle', coordinates: [0, 0], radius: 22 };
+
+async function renderPlaces() {
+  if (plMap) { plMap.container.fitToViewport(); return; } // карта уже открыта — не сбиваем правку
+  $('#plSide').innerHTML = '<div class="empty">Загружаем карту…</div>';
+  try { PL = await PlacesStore.load(true); await loadYmaps(); }
+  catch { $('#plSide').innerHTML = '<div class="empty">Не удалось загрузить Яндекс Карты</div>'; return; }
+  plMap = new ymaps.Map('plMap', { center: [61.6663, 50.9912], zoom: 17, controls: ['zoomControl', 'typeSelector'] }, { suppressMapOpenBlock: true });
+  plMap.events.add('click', e => { if (plAdding) newPlaceAt(e.get('coords')); });
+  drawMarks(); renderSide();
+  if (PL.length > 1) plMap.setBounds(plMap.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 60 });
+}
+function drawMarks() {
+  plMap.geoObjects.removeAll();
+  PL.forEach(p => {
+    const pm = new ymaps.Placemark(p.coords, { hintContent: p.name }, { draggable: true, iconLayout: plLayout(p, p.id === plSel), iconShape: plShape(p) });
+    pm.events.add('click', () => { plSel = p.id; plDraft = null; drawMarks(); renderSide(); });
+    pm.events.add('dragend', async () => {
+      const c = pm.geometry.getCoordinates().map(v => +v.toFixed(6));
+      p.coords = c;
+      if (p._new) { if (plDraft) plDraft.coords = c; renderSide(); return; } // новый ещё не сохранён
+      try { await PlacesStore.move(p.id, c); plToast('Сохранено новое место: ' + p.name); }
+      catch (e) { alert('Не удалось сохранить место: ' + e.message); }
+      if (plSel === p.id) renderSide();
+    });
+    plMap.geoObjects.add(pm);
+  });
+}
+function renderSide() {
+  const side = $('#plSide');
+  const p = PL.find(x => x.id === plSel);
+  if (!p) {
+    side.innerHTML = `<h2>Объекты <small>${PL.length}</small></h2>
+      <button class="btn" id="plAdd" style="width:100%;margin-bottom:6px">${plAdding ? 'Нажмите на карте, где поставить…' : '+ Добавить объект'}</button>
+      <p class="hint">${plAdding ? '<a href="#" id="plCancelAdd">Отмена</a>' : 'Перетащите значок на карте — новое место сохранится сразу.'}</p>
+      ${PL.map(x => `<button class="pl-row" data-id="${esc(x.id)}">${x.icon ? `<img src="${esc(x.icon)}" alt="">` : `<span class="em">${(CATS[x.cat] || CATS.service).icon}</span>`}<span class="${x.active === false ? 'off' : ''}"><b>${esc(x.name)}</b><small>${(CATS[x.cat] || {}).label || ''}${x.price != null ? ' · ' + (rub(x.price) || '0 ₽') : ''}${x.active === false ? ' · скрыт' : ''}</small></span></button>`).join('')}`;
+    $('#plAdd').onclick = () => { plAdding = !plAdding; renderSide(); };
+    $('#plCancelAdd') && ($('#plCancelAdd').onclick = e => { e.preventDefault(); plAdding = false; renderSide(); });
+    $$('.pl-row').forEach(b => b.onclick = () => { plSel = b.dataset.id; plDraft = null; const q = PL.find(x => x.id === plSel); plMap.panTo(q.coords, { duration: 300 }); drawMarks(); renderSide(); });
+    return;
+  }
+  const d = plDraft ||= { ...p, facts: [...(p.facts || [])], coords: [...p.coords] };
+  const opt = (list, v) => list.map(([k, l]) => `<option value="${esc(k)}" ${String(v ?? '') === k ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  side.innerHTML = `<h2>${p._new ? 'Новый объект' : 'Объект'} <small><a href="#" id="plBack">← к списку</a></small></h2>
+    <label class="fld">Название<input id="fN" value="${esc(d.name)}" maxlength="80"></label>
+    <div class="fld2">
+      <label class="fld">Категория<select id="fC">${opt(Object.entries(CATS).map(([k, v]) => [k, v.icon + ' ' + v.label]), d.cat)}</select></label>
+      <label class="fld">Бронирование<select id="fB">${opt(BOOKABLE, d.bookable)}</select></label>
+    </div>
+    <div class="fld2">
+      <label class="fld">Цена, ₽<input id="fP" type="number" min="0" value="${d.price ?? ''}" placeholder="пусто — без цены"></label>
+      <label class="fld">За что<input id="fU" value="${esc(d.unit || '')}" placeholder="сутки, 3 часа…"></label>
+    </div>
+    <label class="fld">Описание<textarea id="fD" rows="3" maxlength="2000">${esc(d.desc || '')}</textarea></label>
+    <label class="fld">Особенности (каждая с новой строки)<textarea id="fF" rows="3">${esc((d.facts || []).join('\n'))}</textarea></label>
+    <div class="fld">Фото в карточке
+      <div class="thumb"><img src="${esc(d.img || 'img/logo.jpg')}" alt=""><span><input type="file" id="fImg" accept="image/jpeg,image/png,image/webp"><br><small>до 5 МБ</small></span></div></div>
+    <div class="fld">Значок на карте
+      <div class="thumb"><img class="ic" src="${esc(d.icon || '')}" alt="" ${d.icon ? '' : 'style="visibility:hidden"'}><span>
+        <select id="fI">${opt(CUTOUTS.concat(d.icon && !CUTOUTS.some(c => c[0] === d.icon) ? [[d.icon, 'Загруженный значок']] : []), d.icon || '')}</select><br>
+        <input type="file" id="fIcon" accept="image/png,image/webp" style="margin-top:6px"><br><small>PNG с прозрачным фоном</small></span></div></div>
+    <p class="hint">📍 ${d.coords[0].toFixed(5)}, ${d.coords[1].toFixed(5)} — перетащите значок на карте, чтобы переставить</p>
+    <label class="fld" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="fA" ${d.active !== false ? 'checked' : ''}> Показывать гостям</label>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn" id="plSave" style="flex:1">Сохранить</button>
+      <button class="btn sec" id="plDel" style="color:#dc2626">${p._new ? 'Отменить' : 'Удалить'}</button>
+    </div>`;
+  const read = () => Object.assign(d, {
+    name: $('#fN').value.trim(), cat: $('#fC').value, bookable: $('#fB').value || null,
+    price: $('#fP').value === '' ? null : Math.max(0, Math.round(+$('#fP').value)), unit: $('#fU').value.trim(),
+    desc: $('#fD').value.trim(), facts: $('#fF').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 12),
+    icon: $('#fI').value || null, active: $('#fA').checked });
+  const preview = () => { read(); const i = PL.findIndex(x => x.id === p.id); PL[i] = { ...PL[i], cat: d.cat, icon: d.icon, active: d.active }; drawMarks(); renderSide(); };
+  $('#fC').onchange = preview; $('#fI').onchange = preview; $('#fA').onchange = preview;
+  const uploadTo = async (input, field) => {
+    const f = input.files[0]; if (!f) return;
+    if (f.size > 5 * 1024 * 1024) return alert('Файл больше 5 МБ');
+    read(); input.disabled = true;
+    try {
+      d[field] = REMOTE ? await Api.upload(f) : await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+      if (field === 'icon') { const i = PL.findIndex(x => x.id === p.id); PL[i] = { ...PL[i], icon: d.icon }; drawMarks(); }
+      plToast('Фото загружено — не забудьте сохранить');
+    } catch (e) { alert('Не удалось загрузить: ' + e.message); }
+    renderSide();
+  };
+  $('#fImg').onchange = e => uploadTo(e.target, 'img');
+  $('#fIcon').onchange = e => uploadTo(e.target, 'icon');
+  $('#plBack').onclick = e => { e.preventDefault(); if (p._new) PL = PL.filter(x => x.id !== p.id); plSel = null; plDraft = null; drawMarks(); renderSide(); };
+  $('#plSave').onclick = async () => {
+    read();
+    if (!d.name) return alert('Укажите название');
+    const saved = { ...d }; delete saved._new;
+    $('#plSave').disabled = true;
+    try { await PlacesStore.save(saved); }
+    catch (e) { $('#plSave').disabled = false; return alert('Не удалось сохранить: ' + e.message); }
+    PL[PL.findIndex(x => x.id === p.id)] = saved; plDraft = null;
+    applyPlaces(PL.filter(x => x.active !== false));
+    plToast('Сохранено: ' + saved.name); drawMarks(); renderSide();
+  };
+  $('#plDel').onclick = async () => {
+    if (!p._new) {
+      if (!confirm(`Удалить «${p.name}» с карты? Брони по нему останутся в списке. Скрыть объект можно галочкой «Показывать гостям».`)) return;
+      try { await PlacesStore.remove(p.id); } catch (e) { return alert('Не удалось удалить: ' + e.message); }
+      plToast('Удалено: ' + p.name);
+    }
+    PL = PL.filter(x => x.id !== p.id); plSel = null; plDraft = null; drawMarks(); renderSide();
+  };
+}
+function newPlaceAt(coords) {
+  plAdding = false;
+  const p = { id: 'obj-' + Date.now().toString(36), cat: 'gazebo', name: 'Новый объект', img: '', icon: 'img/cut/gazebo.png', price: null, unit: '', bookable: 'day',
+    coords: coords.map(v => +v.toFixed(6)), desc: '', facts: [], sort: PL.length, active: true, _new: true };
+  PL.push(p); plSel = p.id; plDraft = null; drawMarks(); renderSide();
 }
 
 /* демо-данные для проверки интерфейса */
@@ -294,11 +544,18 @@ $('#demoBtn').onclick = () => {
       ...(Math.random() < .5 ? { loyaltyCode: refCodeFromPhone('+7912' + i) } : {}) });
   }
   Store.save(list.sort((a, b) => b.date.localeCompare(a.date)));
-  render();
+  load();
 };
-$('#clearBtn').onclick = () => { if (confirm('Удалить все брони?')) { Store.save([]); render(); } };
-window.addEventListener('storage', render);
-render();
+$('#clearBtn').onclick = () => { if (confirm('Удалить все брони?')) { Store.save([]); load(); } };
+window.addEventListener('storage', () => { if (!REMOTE) load(); });
+if (REMOTE) {
+  $('#demoBtn').hidden = $('#clearBtn').hidden = true;
+  $('#reloadBtn').hidden = $('#logoutBtn').hidden = false;
+  if (window.__recovery) { showLogin(); $('#loginForm').hidden = true; $('#pwForm').hidden = false; }
+  else if (Api.session()) { showApp(); load(); } else showLogin();
+  setInterval(() => { if (Api.session() && !document.hidden) load(); }, 60000); // новые заявки раз в минуту
+} else load();
 </script>
+<div class="pl-toast" id="plToast"></div>
 </body>
 </html>

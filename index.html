@@ -89,6 +89,20 @@ a{color:inherit}
 .pin.sm{left:-17px;top:-17px;width:34px;height:34px;font-size:16px}
 .map-btn{position:absolute;right:12px;bottom:16px;z-index:500;width:46px;height:46px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);display:grid;place-items:center}
 .map-btn.sat{bottom:72px;font-size:11px;font-weight:800}
+.map-btn.rain{bottom:128px;font-size:20px}
+.map-btn.rain.on{background:#2563eb;color:#fff}
+.rain-bar{position:absolute;left:12px;right:70px;bottom:16px;z-index:500;background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:10px 12px}
+.rain-top{display:flex;align-items:center;gap:10px}
+.rain-top button{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font-size:14px;flex:0 0 34px}
+.rain-top b{font-size:13px;min-width:92px}
+.rain-top input{flex:1;accent-color:var(--brand)}
+.rain-leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px}
+.rain-leg i{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#9be1ff,#38bdf8,#2563eb,#22c55e,#facc15,#f97316,#dc2626)}
+.rain-now{font-size:12.5px;margin-top:6px;font-weight:600}
+.pph{position:absolute;left:-34px;bottom:0;width:68px;display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35));transition:transform .15s;transform-origin:bottom center}
+.pph img{width:68px;height:auto;display:block}
+.pph i{width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid #fff;margin-top:-3px}
+.pph.sel{transform:scale(1.25)}
 .map-err{position:absolute;inset:40% 24px auto;z-index:450;text-align:center;color:var(--muted);font-size:14px}
 
 /* бонусы */
@@ -236,6 +250,12 @@ ul.rules li{margin-bottom:6px}
       <div class="seg"><button class="on" data-mode="map">Карта</button><button data-mode="list">Список</button></div>
       <div class="chips" id="chips"></div>
     </div>
+    <div class="rain-bar" id="rainBar" hidden>
+      <div class="rain-top"><button id="rainPlay" title="Анимация">▶</button><b id="rainTime"></b><input type="range" id="rainSlider" min="0" max="0" value="0"></div>
+      <div class="rain-leg"><span>0,1 мм/ч</span><i></i><span>16+</span></div>
+      <div class="rain-now" id="rainNow"></div>
+    </div>
+    <button class="map-btn rain" id="rainBtn" title="Карта осадков">☔</button>
     <button class="map-btn sat" id="satBtn" title="Спутник">СПУТ</button>
     <button class="map-btn" id="locBtn" title="Где я?">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
@@ -298,6 +318,7 @@ function showTab(tab) {
   if (tab === 'map') initMap();
   if (tab === 'profile') renderMyBookings();
   if (tab === 'bonus') renderBonus();
+  if (tab === 'profile' || tab === 'bonus') syncRemote();
   if (tab === 'home') updatePromo();
   closeSheet();
 }
@@ -327,8 +348,12 @@ $('#addr').textContent = PARK.address;
 /* ---------- главная ---------- */
 const tileHTML = (attr, img, name, tag, priceHTML) =>
   `<button class="tile" ${attr}><div class="ph" style="background-image:url('${img}')"><span class="tag">${esc(tag)}</span></div><div class="bd"><h3>${esc(name)}</h3><div class="pr">${priceHTML}</div></div></button>`;
-$('#stayList').innerHTML = PLACES.filter(p => p.cat === 'house' || p.cat === 'gazebo')
-  .map(p => tileHTML(`data-place="${p.id}"`, p.img, p.name, p.cat === 'house' ? 'Домик' : 'Беседка', `<b>${rub(p.price)}</b> / ${esc(p.unit)}`)).join('');
+const CAT_ONE = { house: 'Домик', gazebo: 'Беседка', banya: 'Баня' };
+function renderStay() {
+  $('#stayList').innerHTML = PLACES.filter(p => CAT_ONE[p.cat])
+    .map(p => tileHTML(`data-place="${p.id}"`, p.img || 'img/cover.jpg', p.name, CAT_ONE[p.cat], `<b>${rub(p.price)}</b>${p.unit ? ' / ' + esc(p.unit) : ''}`)).join('');
+}
+renderStay();
 $('#evList').innerHTML = SERVICES.map(s => tileHTML(`data-svc="${s.id}"`, s.img, s.name, s.tag, `<b>${rub(s.price)}</b>${s.oldPrice ? `<s>${rub(s.oldPrice)}</s>` : ''}`)).join('');
 $('#svcGrid').innerHTML = SERVICES.map(s => `<button class="svc" data-svc="${s.id}"><div class="ph" style="background-image:url('${s.img}')"><span class="tag">${esc(s.tag)}</span></div><div class="bd"><h3>${esc(s.name)}</h3><div class="pr"><b>${rub(s.price)}</b>${s.oldPrice ? `<s>${rub(s.oldPrice)}</s>` : ''}</div></div></button>`).join('');
 
@@ -343,26 +368,39 @@ function loadYmaps() {
     document.head.appendChild(s);
   });
 }
-function pinLayout(cat, sel) {
-  const k = cat + (sel ? ':sel' : '');
-  const c = CATS[cat];
-  return layouts[k] ||= ymaps.templateLayoutFactory.createClass(`<div class="pin ${sel ? 'sel' : ''}" style="--c:${c.color}">${c.icon}</div>`);
+function pinLayout(p, sel) {
+  const c = CATS[p.cat] || CATS.service;
+  const k = [p.cat, p.icon, sel].join('|');
+  return layouts[k] ||= ymaps.templateLayoutFactory.createClass(p.icon
+    ? `<div class="pph ${sel ? 'sel' : ''}" style="--c:${c.color}"><img src="${esc(p.icon)}" alt=""><i></i></div>`
+    : `<div class="pin ${sel ? 'sel' : ''}" style="--c:${c.color}">${c.icon}</div>`);
 }
-const pinIcon = (p, sel) => pinLayout(p.cat, sel);
+const pinIcon = (p, sel) => pinLayout(p, sel);
+const pinShape = p => p.icon ? { type: 'Rectangle', coordinates: [[-34, -54], [34, 0]] } : { type: 'Circle', coordinates: [0, 0], radius: 22 };
+let placeLayer;
+// значки объектов; пересобираются, когда объекты приходят из базы
+function drawPlaceMarks() {
+  if (!map || map === 'loading') return;
+  if (placeLayer) map.geoObjects.remove(placeLayer);
+  placeLayer = new ymaps.GeoObjectCollection();
+  markers = {};
+  PLACES.forEach(p => {
+    const pm = new ymaps.Placemark(p.coords, { hintContent: p.name }, { iconLayout: pinIcon(p), iconShape: pinShape(p) });
+    pm.events.add('click', () => openPlace(p.id));
+    // совместимость с фильтром: addTo / remove / setIcon
+    markers[p.id] = { pm, addTo() { placeLayer.add(pm); }, remove() { placeLayer.remove(pm); }, setIcon(l) { pm.options.set('iconLayout', l); } };
+    if (filter === 'all' || p.cat === filter) placeLayer.add(pm);
+  });
+  if (rain.on) placeLayer.options.set('visible', false);
+  map.geoObjects.add(placeLayer);
+}
 function initMap() {
-  if (map) { map.container.fitToViewport(); return; }
+  if (map) { if (map !== 'loading') map.container.fitToViewport(); return; }
   map = 'loading';
   loadYmaps().then(() => {
     map = new ymaps.Map('map', { center: [61.6663, 50.9912], zoom: 16, controls: [] }, { suppressMapOpenBlock: true });
     map.controls.add('zoomControl', { size: 'small', position: { right: 12, top: 150 } });
-    PLACES.forEach(p => {
-      const pm = new ymaps.Placemark(p.coords, { hintContent: p.name }, {
-        iconLayout: pinIcon(p), iconShape: { type: 'Circle', coordinates: [0, 0], radius: 22 } });
-      pm.events.add('click', () => openPlace(p.id));
-      // совместимость с фильтром: addTo / remove / setIcon
-      markers[p.id] = { pm, addTo() { map.geoObjects.add(pm); }, remove() { map.geoObjects.remove(pm); }, setIcon(l) { pm.options.set('iconLayout', l); } };
-      map.geoObjects.add(pm);
-    });
+    drawPlaceMarks();
     const bus = new ymaps.Placemark(PARK.busStop.coords, { balloonContent: `<b>${PARK.busStop.name}</b><br>${PARK.busStop.walk}`, hintContent: PARK.busStop.name }, {
       iconLayout: ymaps.templateLayoutFactory.createClass('<div class="pin sm" style="--c:#475569">🚌</div>'), iconShape: { type: 'Circle', coordinates: [0, 0], radius: 18 } });
     map.geoObjects.add(bus);
@@ -374,6 +412,74 @@ function initMap() {
   });
   renderChips(); renderList();
 }
+
+/* ---------- карта осадков: прогноз Open-Meteo по сетке точек вокруг парка ---------- */
+// Радары RainViewer над Республикой Коми данных не дают, поэтому берём почасовой прогноз осадков
+// в 49 точках (7×7, ~170×160 км) и рисуем ячейки прямо на Яндекс Карте — в её собственной проекции.
+const rain = { on: false, data: null, i: 0, timer: null, prev: null, layer: null };
+const RAIN_STEP = [0.25, 0.5]; // шаг сетки: широта, долгота
+const RAIN_SCALE = [[0.1, '#9be1ff'], [0.5, '#38bdf8'], [1, '#2563eb'], [2, '#22c55e'], [4, '#facc15'], [8, '#f97316'], [16, '#dc2626']];
+const rainColor = mm => { let c = null; for (const [v, col] of RAIN_SCALE) if (mm >= v) c = col; return c; };
+async function loadRainGrid() {
+  const key = 'yagmort.rain.' + new Date().toISOString().slice(0, 13); // кешируем на час
+  try { const c = JSON.parse(sessionStorage.getItem(key)); if (c) return c; } catch {}
+  const pts = [];
+  for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) pts.push([+(PARK.center[0] + i * RAIN_STEP[0]).toFixed(3), +(PARK.center[1] + j * RAIN_STEP[1]).toFixed(3)]);
+  const u = `https://api.open-meteo.com/v1/forecast?latitude=${pts.map(p => p[0])}&longitude=${pts.map(p => p[1])}&hourly=precipitation,snowfall&forecast_hours=12&timezone=auto`;
+  const r = await (await fetch(u)).json();
+  const list = Array.isArray(r) ? r : [r];
+  const data = { pts, times: list[0].hourly.time, mm: list.map(x => x.hourly.precipitation), snow: list.map(x => x.hourly.snowfall) };
+  try { sessionStorage.setItem(key, JSON.stringify(data)); } catch {}
+  return data;
+}
+function drawRain() {
+  if (!map || map === 'loading') return;
+  if (rain.layer) { map.geoObjects.remove(rain.layer); rain.layer = null; }
+  if (!rain.on || !rain.data) return;
+  const d = rain.data, h = rain.i;
+  rain.layer = new ymaps.GeoObjectCollection();
+  d.pts.forEach(([lat, lng], k) => {
+    const mm = d.mm[k][h] || 0, col = rainColor(mm);
+    if (!col) return;
+    const snow = (d.snow[k][h] || 0) > 0;
+    rain.layer.add(new ymaps.Rectangle([[lat - RAIN_STEP[0] / 2, lng - RAIN_STEP[1] / 2], [lat + RAIN_STEP[0] / 2, lng + RAIN_STEP[1] / 2]],
+      { hintContent: `${mm.toFixed(1)} мм/ч${snow ? ', снег' : ''}` }, { fillColor: col, fillOpacity: 0.5, strokeWidth: 0, interactivityModel: 'default#transparent' }));
+  });
+  map.geoObjects.add(rain.layer);
+  const t = new Date(d.times[h]);
+  $('#rainTime').textContent = h === 0 ? 'Сейчас' : '+' + h + ' ч · ' + t.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  $('#rainSlider').value = h;
+  const park = d.pts.findIndex(p => p[0] === +PARK.center[0].toFixed(3) && p[1] === +PARK.center[1].toFixed(3));
+  const pm = park >= 0 ? d.mm[park][h] : 0, ps = park >= 0 ? d.snow[park][h] : 0;
+  const total = park >= 0 ? d.mm[park].reduce((a, b) => a + b, 0) : 0;
+  $('#rainNow').textContent = `В парке: ${pm > 0 ? (ps > 0 ? 'снег' : 'дождь') + ' ' + pm.toFixed(1) + ' мм/ч' : 'без осадков'} · за 12 ч: ${total.toFixed(1)} мм`;
+}
+async function toggleRain() {
+  rain.on = !rain.on;
+  $('#rainBtn').classList.toggle('on', rain.on);
+  $('#rainBar').hidden = !rain.on;
+  if (!map || map === 'loading') return;
+  if (placeLayer) placeLayer.options.set('visible', !rain.on);
+  if (!rain.on) {
+    clearInterval(rain.timer); rain.timer = null; $('#rainPlay').textContent = '▶';
+    drawRain();
+    if (rain.prev) map.setCenter(rain.prev[0], rain.prev[1], { duration: 300 });
+    return;
+  }
+  rain.prev = [map.getCenter(), map.getZoom()];
+  map.setCenter(PARK.center, 8, { duration: 300 });
+  $('#rainTime').textContent = 'Загружаем…'; $('#rainNow').textContent = '';
+  try { rain.data = await loadRainGrid(); rain.i = 0; $('#rainSlider').max = rain.data.times.length - 1; drawRain(); }
+  catch { $('#rainTime').textContent = 'Прогноз недоступен'; }
+}
+$('#rainBtn').onclick = toggleRain;
+$('#rainPlay').onclick = () => {
+  if (rain.timer) { clearInterval(rain.timer); rain.timer = null; $('#rainPlay').textContent = '▶'; return; }
+  $('#rainPlay').textContent = '⏸';
+  rain.timer = setInterval(() => { if (!rain.data) return; rain.i = (rain.i + 1) % rain.data.times.length; drawRain(); }, 800);
+};
+$('#rainSlider').oninput = e => { rain.i = +e.target.value; drawRain(); };
+
 $('#satBtn').onclick = () => {
   if (!map || map === 'loading') return;
   const sat = map.getType() !== 'yandex#hybrid';
@@ -387,11 +493,11 @@ function renderChips() {
 $('#chips').addEventListener('click', e => {
   const b = e.target.closest('[data-f]'); if (!b) return;
   filter = b.dataset.f; renderChips(); renderList();
-  if (map && map !== 'loading') PLACES.forEach(p => { const show = filter === 'all' || p.cat === filter; show ? markers[p.id].addTo() : markers[p.id].remove(); });
+  if (map && map !== 'loading') PLACES.forEach(p => { const m = markers[p.id]; if (!m) return; (filter === 'all' || p.cat === filter) ? m.addTo() : m.remove(); });
 });
 function renderList() {
   const items = PLACES.filter(p => filter === 'all' || p.cat === filter);
-  $('#listView').innerHTML = items.map(p => `<button class="row" data-place="${p.id}"><div class="ph" style="background-image:url('${p.img}')"></div><div><h3>${esc(p.name)}</h3><div class="meta">${p.price != null ? rub(p.price) + (p.unit ? ' / ' + esc(p.unit) : '') : esc(p.desc.slice(0, 50))}</div><span class="badge" style="background:${CATS[p.cat].color}">${CATS[p.cat].label}</span></div></button>`).join('');
+  $('#listView').innerHTML = items.map(p => `<button class="row" data-place="${p.id}"><div class="ph" style="background-image:url('${esc(p.img || 'img/cover.jpg')}')"></div><div><h3>${esc(p.name)}</h3><div class="meta">${p.price != null ? rub(p.price) + (p.unit ? ' / ' + esc(p.unit) : '') : esc(p.desc.slice(0, 50))}</div><span class="badge" style="background:${CATS[p.cat].color}">${CATS[p.cat].label}</span></div></button>`).join('');
 }
 $$('.seg button').forEach(b => b.onclick = () => {
   $$('.seg button').forEach(x => x.classList.toggle('on', x === b));
@@ -422,7 +528,7 @@ $('#backdrop').onclick = closeSheet;
 function openPlace(id) {
   const p = placeById(id);
   if (map && map !== 'loading' && markers[id]) { markers[id].setIcon(pinIcon(p, true)); }
-  openSheet(`<div class="cover" style="background-image:url('${p.img}')"></div><div class="in">
+  openSheet(`<div class="cover" style="background-image:url('${esc(p.img || 'img/cover.jpg')}')"></div><div class="in">
     <span class="badge" style="display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;color:#fff;background:${CATS[p.cat].color}">${CATS[p.cat].label}</span>
     <h2 style="margin-top:8px">${esc(p.name)}</h2>
     ${p.price != null ? `<div class="price"><b>${rub(p.price)}</b>${p.unit ? ' / ' + esc(p.unit) : ''}</div>` : '<div style="height:10px"></div>'}
@@ -498,7 +604,9 @@ function renderBooking() {
   const perPerson = bk.svcId || it.bookable === 'event';
   const maxG = isHouse ? 8 : it.cat === 'gazebo' && it.id !== 'gaz12' ? 4 : 30;
   bk.guests = Math.min(bk.guests, maxG);
-  const busy = Store.all().filter(b => b.placeId && b.placeId === bk.placeId && b.date === bk.date && b.status !== 'cancelled').length > 0;
+  loadBusy(bk.placeId);
+  const remoteBusy = Array.isArray(busyCache[bk.placeId]) && busyCache[bk.placeId].includes(bk.date);
+  const busy = remoteBusy || Store.all().filter(b => b.placeId && b.placeId === bk.placeId && b.date === bk.date && b.status !== 'cancelled').length > 0;
   const options = bk.svcId ? SERVICES : PLACES.filter(p => p.bookable);
   openSheet(`<div class="in" style="padding-top:8px">
     <h2>Бронирование</h2><p class="muted" style="margin:4px 0 14px">${bk.svcId ? 'Запись на активность' : 'Выберите место отдыха'}</p>
@@ -538,19 +646,50 @@ function renderBooking() {
   $('#fLate') && ($('#fLate').onchange = e => { sync(); bk.late = e.target.checked; renderBooking(); });
   $('#fCoins') && ($('#fCoins').onchange = e => { sync(); bk.useCoins = e.target.checked; renderBooking(); });
   $('#fGift') && ($('#fGift').onchange = e => { sync(); bk.gift = e.target.checked; renderBooking(); });
-  $('#fSubmit').onclick = () => {
+  $('#fSubmit').onclick = async () => {
     sync();
     if (!bk.name.trim()) return toast('Укажите имя');
     if (bk.phone.replace(/\D/g, '').length < 10) return toast('Укажите телефон');
     const P = pricing();
-    Store.add({ id: 'B' + Date.now().toString(36).toUpperCase(), placeId: bk.placeId, svcId: bk.svcId, itemName: it.name,
+    const booking = { id: newBookingId(), placeId: bk.placeId, svcId: bk.svcId, itemName: it.name,
       date: bk.date, guests: bk.guests, pet: bk.pet, late: bk.late, name: bk.name.trim(), phone: bk.phone.trim(), comment: bk.comment.trim(),
       base: P.base, total: P.total, coinsSpent: P.coins, refDiscount: P.refDisc, refBy: P.refDisc ? P.L.me.refBy : null, gift: !!P.gift,
-      loyaltyCode: P.L.joined ? P.L.me.code : null, status: 'new', createdAt: new Date().toISOString(), mine: true });
+      loyaltyCode: P.L.joined ? P.L.me.code : null, status: 'new', createdAt: new Date().toISOString(), mine: true };
+    if (REMOTE) {
+      const btn = $('#fSubmit'); btn.disabled = true; btn.textContent = 'Отправляем…';
+      try { await Api.createBooking(booking); }
+      catch { btn.disabled = false; btn.textContent = 'Отправить заявку'; return toast('Не удалось отправить. Проверьте интернет или позвоните: 717-006'); }
+      delete busyCache[booking.placeId];
+    }
+    Store.add(booking);
     if (!P.L.joined) Loyalty.set({ name: bk.name.trim(), phone: bk.phone.trim() }); // подставим в форму вступления
     closeSheet(); toast('Заявка отправлена! Мы перезвоним для подтверждения');
     showTab('profile');
   };
+}
+
+/* ---------- синхронизация с базой ---------- */
+const busyCache = {};
+function loadBusy(pid) {
+  if (!REMOTE || !pid || busyCache[pid]) return;
+  busyCache[pid] = 'loading';
+  Api.busyDates(pid).then(d => { busyCache[pid] = d || []; if ($('#sheet').classList.contains('on') && bk?.placeId === pid) renderBooking(); })
+    .catch(() => { delete busyCache[pid]; });
+}
+async function syncRemote() {
+  if (!REMOTE) return;
+  try {
+    const mine = Store.all().filter(b => b.mine);
+    if (mine.length) {
+      const st = await Api.statuses(mine.map(b => b.id));
+      st.forEach(s => { const b = mine.find(x => x.id === s.id); if (b && b.status !== s.status) Store.update(s.id, { status: s.status }); });
+    }
+    const me = Loyalty.get();
+    if (me.code) Loyalty.set({ refCount: await Api.refRewards(me.code), refCheckedAt: todayISO() });
+    if ($('#screen-profile').classList.contains('active')) renderMyBookings();
+    if ($('#screen-bonus').classList.contains('active')) renderBonus();
+    updatePromo();
+  } catch {}
 }
 
 /* ---------- мои брони ---------- */
@@ -559,15 +698,17 @@ function renderMyBookings() {
   $('#myBookings').innerHTML = list.length ? list.map(b => {
     const st = STATUSES.find(s => s.id === b.status);
     return `<div class="card"><div class="bk-h"><div><h3>${esc(b.itemName)}</h3><div class="muted">${fmtDate(b.date)} · ${b.guests} чел.</div></div><span class="st" style="background:${st.color}">${st.label.replace(/ы$/, 'а').replace('Новые', 'Новая')}</span></div>
-      <div class="total" style="padding-top:10px"><span class="muted">№ ${b.id}</span><b style="font-size:18px">${rub(b.total)}</b></div>
+      <div class="total" style="padding-top:10px"><span class="muted">№ ${shortId(b.id)}</span><b style="font-size:18px">${rub(b.total)}</b></div>
       ${b.status === 'new' || b.status === 'confirmed' ? `<button class="cta ghost" style="margin-top:8px;padding:10px" onclick="cancelMine('${b.id}')">Отменить бронь</button>` : ''}</div>`;
   }).join('') : `<div class="empty"><div>🌲</div>Пока нет бронирований<button class="cta" data-go="book" style="margin-top:14px">Забронировать</button></div>`;
 }
-function cancelMine(id) {
+async function cancelMine(id) {
   const b = Store.all().find(x => x.id === id);
   const days = (new Date(b.date) - new Date(todayISO())) / 864e5;
   const msg = days < 10 && b.placeId ? 'До заезда меньше 10 суток — по правилам предоплата не возвращается. Отменить?' : 'Отменить бронь?';
-  if (confirm(msg)) { Store.update(id, { status: 'cancelled' }); renderMyBookings(); toast('Бронь отменена'); }
+  if (!confirm(msg)) return;
+  if (REMOTE) { try { await Api.cancel(id); } catch { return toast('Не удалось отменить. Позвоните: 717-006'); } }
+  Store.update(id, { status: 'cancelled' }); renderMyBookings(); toast('Бронь отменена');
 }
 
 /* ---------- бонусная программа ---------- */
@@ -627,7 +768,7 @@ function renderBonus() {
         <button class="cta" style="margin:0" id="shareBtn">Поделиться</button>
         <a class="cta ghost" style="margin:0" target="_blank" rel="noopener" href="https://vk.com/share.php?url=${encodeURIComponent(refLink(S.me.code))}&title=${encodeURIComponent('Поехали в парк «Яг-Морт»! По моей ссылке −500 ₽ на первую бронь')}">ВКонтакте</a>
       </div>
-      ${(S.me.refRewards || []).length ? `<p class="muted" style="margin-top:10px">Приглашено друзей: ${(S.me.refRewards || []).length}</p>` : ''}
+      ${S.me.refCount ? `<p class="muted" style="margin-top:10px">Друзей отдохнуло по вашему коду: ${S.me.refCount}</p>` : ''}
     </div>
 
     <div class="card"><b>Уровни</b>${LOYALTY.levels.map(l => `<div class="lvl ${l.id === L.id ? 'cur' : ''}"><span class="ic">${l.icon}</span><div><b>${l.name}</b> <span class="muted">· от ${l.from} визитов</span><div class="muted">${l.perks.join(' · ')}</div></div></div>`).join('')}</div>
@@ -669,6 +810,9 @@ function updatePromo() {
   history.replaceState(null, '', location.pathname);
 })();
 updatePromo();
+syncRemote();
+// объекты карты из базы (админ мог их переставить или добавить)
+PlacesStore.load().then(list => { applyPlaces(list); renderStay(); renderList(); drawPlaceMarks(); }).catch(() => {});
 
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2600); }
 
